@@ -1,0 +1,24 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "User profile information",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Full name" },
+        "major": { "type": "string", "description": "Academic major" },
+        "gpa": { "type": "string", "description": "Grade Point Average" },
+        "school": { "type": "string", "description": "School code (e.g., QHI)" },
+        "subInfo": { "type": "string", "description": "Full school name or additional info" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profile data stored by UID"
+    }
+  }
+}

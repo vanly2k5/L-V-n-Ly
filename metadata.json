@@ -1,0 +1,10 @@
+{
+  "name": "CampusHub",
+  "description": "Nền tảng tổng hợp và đề xuất sự kiện, học bổng, cơ hội cho sinh viên",
+  "requestFramePermissions": [
+    "camera"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

@@ -1,0 +1,68 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Validation for User entity
+    function isValidUser(data) {
+      return data.keys().hasAll(['name']) &&
+             data.name is string && data.name.size() > 0 && data.name.size() <= 100 &&
+             (!data.keys().hasAny(['major']) || (data.major is string && data.major.size() <= 100)) &&
+             (!data.keys().hasAny(['gpa']) || (data.gpa is string && data.gpa.size() <= 10)) &&
+             (!data.keys().hasAny(['school']) || (data.school is string && data.school.size() <= 20)) &&
+             (!data.keys().hasAny(['subInfo']) || (data.subInfo is string && data.subInfo.size() <= 500)) &&
+             (!data.keys().hasAny(['points']) || (data.points is int || data.points is float)) &&
+             (!data.keys().hasAny(['eventsCount']) || (data.eventsCount is string && data.eventsCount.size() <= 20)) &&
+             (!data.keys().hasAny(['academicPoints']) || (data.academicPoints is int || data.academicPoints is float)) &&
+             (!data.keys().hasAny(['socialPoints']) || (data.socialPoints is int || data.socialPoints is float)) &&
+             (!data.keys().hasAny(['ethicsPoints']) || (data.ethicsPoints is int || data.ethicsPoints is float)) &&
+             (!data.keys().hasAny(['theme']) || (
+               data.theme is map && 
+               data.theme.primary is string && data.theme.primary.size() <= 10 &&
+               data.theme.background is string && data.theme.background.size() <= 10 &&
+               data.theme.text is string && data.theme.text.size() <= 10 &&
+               data.theme.secondary is string && data.theme.secondary.size() <= 10
+             )) &&
+             (!data.keys().hasAny(['updatedAt']) || data.updatedAt == request.time);
+    }
+
+    match /users/{userId} {
+      allow get: if isSignedIn(); 
+      allow list: if false;
+      allow create: if isOwner(userId) && isValidUser(incoming());
+      allow update: if isOwner(userId) && isValidUser(incoming()) && (
+        incoming().diff(existing()).affectedKeys().hasOnly(['name', 'major', 'gpa', 'school', 'subInfo', 'points', 'eventsCount', 'academicPoints', 'socialPoints', 'ethicsPoints', 'theme', 'updatedAt'])
+      );
+      allow delete: if false;
+    }
+    
+    // Test connection collection
+    match /test/connection {
+      allow read: if true;
+    }
+  }
+}
