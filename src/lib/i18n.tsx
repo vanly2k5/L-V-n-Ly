@@ -118,7 +118,8 @@ const translations = {
       scanningIn: "Đang quét mã vào...",
       scanningOut: "Đang quét mã ra...",
       successIn: "Check-in thành công!",
-      successOut: "Check-out thành công!"
+      successOut: "Check-out thành công!",
+      exportPdf: "Xuất PDF",
     },
     auth: {
       login: "Đăng nhập",
@@ -248,7 +249,8 @@ const translations = {
       scanningIn: "Scanning for entry...",
       scanningOut: "Scanning for exit...",
       successIn: "Check-in successful!",
-      successOut: "Check-out successful!"
+      successOut: "Check-out successful!",
+      exportPdf: "Export PDF",
     },
     auth: {
       login: "Login",

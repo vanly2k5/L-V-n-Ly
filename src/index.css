@@ -1,27 +1,12 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&family=Sora:wght@400;600;700&display=swap');
-@import "tailwindcss";
-
-@theme {
-  --font-sans: "Outfit", "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-sora: "Sora", sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
-  --color-app-primary: var(--app-primary);
-  --color-app-bg: var(--app-bg);
-  --color-app-text: var(--app-text);
-  --color-app-secondary: var(--app-secondary);
-}
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
 
 :root {
   --app-primary: #5B50D6;
   --app-bg: #F5F6FF;
   --app-text: #0D1340;
   --app-secondary: #EEEDFD;
-  --color-primary: #1A1F6A;
-  --color-secondary: var(--app-primary);
-  --color-accent: #0E6B52;
-  --color-accent-light: #1DB882;
-  --color-warning: #F0A030;
-  --color-background: var(--app-bg);
 }
 
 body {
@@ -35,7 +20,7 @@ body {
 }
 
 .glass-pill {
-  @apply bg-white/12 border border-white/15 backdrop-blur-md;
+  @apply bg-white/10 border border-white/20 backdrop-blur-md;
 }
 
 .success-pop {
@@ -48,15 +33,17 @@ body {
   100% { transform: scale(1); opacity: 1; }
 }
 
-@utility no-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-  &::-webkit-scrollbar {
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
     display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
   }
 }
 
-@utility shimmer-sweep {
+.shimmer-sweep {
   position: absolute;
   inset: 0;
   transform: translateX(-100%) skewX(-20deg);

@@ -4,6 +4,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { TrendingUp, Award, Clock, Target, BarChart3, ChevronRight } from "lucide-react";
 import { useI18n } from "../lib/i18n";
 import { CheckInRecord } from "../types";
+import { generateAttendancePDF } from "../lib/pdfGenerator";
 
 interface DashboardProps {
   userData: {
@@ -186,7 +187,12 @@ export default function Dashboard({ userData, history }: DashboardProps) {
         <div className="mx-5 mb-8">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">{t('attendance.history')}</h2>
-            <button className="text-[10px] font-bold text-app-primary flex items-center gap-1 uppercase">Xuất PDF <ChevronRight size={10} /></button>
+            <button 
+              onClick={() => generateAttendancePDF(userData, history)}
+              className="text-[10px] font-bold text-app-primary flex items-center gap-1 uppercase hover:underline transition-all"
+            >
+              Xuất PDF <ChevronRight size={10} />
+            </button>
           </div>
           <div className="space-y-3">
              {history.slice(0, 4).map((record, i) => (

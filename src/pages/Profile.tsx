@@ -8,9 +8,12 @@ import { signOut } from "firebase/auth";
 import { doc, getDoc, setDoc, serverTimestamp, updateDoc } from "firebase/firestore";
 import { applyTheme, AppTheme, DEFAULT_THEME, getSecondaryFromPrimary } from "../lib/theme";
 import { Palette } from "lucide-react";
+import { generateAttendancePDF } from "../lib/pdfGenerator";
+import { CheckInRecord } from "../types";
 
 interface ProfileProps {
   initialData: any;
+  history: CheckInRecord[];
   onUpdate: (data: any) => void;
   key?: string;
 }
@@ -39,7 +42,7 @@ const SCHOOLS = [
   { id: "QHG", name: "Trường Quản trị và Kinh doanh", full: "Trường Quản trị và Kinh doanh - ĐHQGHN" },
 ];
 
-export default function Profile({ initialData, onUpdate }: ProfileProps) {
+export default function Profile({ initialData, history, onUpdate }: ProfileProps) {
   const { t, lang, setLang } = useI18n();
   const { user } = useAuth();
   const [isPDFModalOpen, setIsPDFModalOpen] = useState(false);
@@ -48,6 +51,7 @@ export default function Profile({ initialData, onUpdate }: ProfileProps) {
   
   const [userData, setUserData] = useState(initialData);
   const [editValues, setEditValues] = useState(initialData);
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [touchDistance, setTouchDistance] = useState<number | null>(null);
   const [initialTouchZoom, setInitialTouchZoom] = useState<number>(1);
 
@@ -147,12 +151,13 @@ export default function Profile({ initialData, onUpdate }: ProfileProps) {
   };
 
   const handleDownload = () => {
-    // Simulate download
-    const link = document.createElement('a');
-    link.href = "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf";
-    link.download = "minh_chung_ren_luyen.pdf";
-    link.target = "_blank";
-    link.click();
+    generateAttendancePDF(userData, history);
+  };
+
+  const handleOpenPDF = () => {
+    const url = generateAttendancePDF({ ...userData, returnUrl: true }, history);
+    setPdfUrl(url as string);
+    setIsPDFModalOpen(true);
   };
 
   return (
@@ -372,18 +377,19 @@ export default function Profile({ initialData, onUpdate }: ProfileProps) {
           <div className="flex gap-2">
             <motion.button
               whileTap={{ scale: 0.95 }}
-              onClick={() => setIsPDFModalOpen(true)}
-              className="px-4 py-2 bg-app-secondary text-app-primary text-[10px] font-bold rounded-xl shadow-sm hover:opacity-90 transition-opacity"
+              onClick={handleDownload}
+              className="px-4 py-2 bg-app-primary text-white text-[10px] font-bold rounded-xl shadow-sm hover:opacity-90 transition-opacity flex items-center gap-1"
             >
-              {t('profile.viewPdf')}
+              <Download size={12} />
+              {t('attendance.exportPdf') || "Xuất PDF"}
             </motion.button>
             <motion.button
               whileTap={{ scale: 0.95 }}
-              onClick={handleDownload}
-              className="p-2 bg-app-primary text-white rounded-xl shadow-sm hover:opacity-90 transition-opacity"
-              title={t('common.download')}
+              onClick={handleOpenPDF}
+              className="p-2 bg-app-secondary text-app-primary rounded-xl shadow-sm hover:opacity-90 transition-opacity"
+              title={t('profile.viewPdf')}
             >
-              <Download className="w-4 h-4" />
+              <FileText size={14} />
             </motion.button>
           </div>
         </div>
@@ -545,7 +551,7 @@ export default function Profile({ initialData, onUpdate }: ProfileProps) {
                       </button>
                     </div>
                     <iframe 
-                      src="https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf#toolbar=0&navpanes=0&scrollbar=0"
+                      src={`${pdfUrl}#toolbar=0&navpanes=0&scrollbar=0`}
                       className="w-full h-[150vh] border-none pointer-events-none relative z-10 bg-white"
                       title="PDF Preview"
                       onLoad={(e) => {
