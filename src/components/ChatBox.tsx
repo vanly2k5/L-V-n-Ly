@@ -38,21 +38,21 @@ export const ChatBox = () => {
         }),
       });
 
-      if (!response.ok) {
-        throw new Error(`Server responded with ${response.status}`);
-      }
-
       const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || `Server responded with ${response.status}`);
+      }
+      
       if (data.text) {
         setMessages((prev) => [...prev, { role: "model", parts: [{ text: data.text }] }]);
       } else {
         throw new Error("Empty response from server");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Chat Error:", error);
       setMessages((prev) => [
         ...prev,
-        { role: "model", parts: [{ text: "Rất tiếc, mình đang gặp chút trục trặc trong việc kết nối. Bạn vui lòng thử lại sau giây lát nhé! 🛠️" }] },
+        { role: "model", parts: [{ text: `Lỗi: ${error.message}. Bạn vui lòng kiểm tra lại cấu hình API hoặc thử lại sau nhé! 🛠️` }] },
       ]);
     } finally {
       setIsLoading(false);

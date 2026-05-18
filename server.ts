@@ -85,7 +85,7 @@ app.post("/api/recommendations", async (req, res) => {
     - Định dạng JSON mảng các đối tượng: [{ "type": "event" | "scholarship", "title": string, "reason": string }]`;
 
     const response = await generateWithRetry({
-      model: "gemini-3-flash-preview",
+      model: "gemini-flash-latest",
       contents: [{ role: 'user', parts: [{ text: prompt }] }]
     });
     
@@ -131,7 +131,7 @@ app.post("/api/chat", async (req, res) => {
     contents.push({ role: "user", parts: [{ text: message }] });
 
     const response = await generateWithRetry({
-      model: "gemini-3-flash-preview",
+      model: "gemini-flash-latest",
       contents,
       config: {
         systemInstruction: "Bạn là CampusHub Assistant - trợ lý sinh viên ảo thông minh. Hãy trả lời bằng tiếng Việt, súc tích, thân thiện và luôn sẵn lòng hỗ trợ về học tập, ngoại khóa, học bổng. Sử dụng emoji phù hợp.",
