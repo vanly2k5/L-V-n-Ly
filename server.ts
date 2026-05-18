@@ -52,6 +52,13 @@ async function startServer() {
   app.post("/api/recommendations", async (req, res) => {
     try {
       const { profile, interests } = req.body;
+      const apiKey = process.env.GEMINI_API_KEY;
+      
+      if (!apiKey) {
+        console.error("GEMINI_API_KEY is missing");
+        return res.json([]);
+      }
+
       const prompt = `Bạn là chuyên gia tư vấn giáo dục toàn cầu của CampusHub. 
       Dựa trên hồ sơ sinh viên sau:
       - Tên: ${profile.name}
@@ -77,7 +84,7 @@ async function startServer() {
       if (!response) {
         return res.json([]);
       }
-
+      
       const text = response.text || "[]";
       
       try {
@@ -107,16 +114,18 @@ async function startServer() {
   app.post("/api/chat", async (req, res) => {
     try {
       const { message, history } = req.body;
+      const apiKey = process.env.GEMINI_API_KEY;
       
-      if (!process.env.GEMINI_API_KEY) {
-        return res.status(500).json({ error: "Gemini API key is not configured." });
+      if (!apiKey) {
+        return res.status(500).json({ error: "Chưa cấu hình Gemini API Key. Vui lòng kiểm tra lại!" });
       }
 
-      // Convert history to correct format if needed
+      // Using the Chat interface might not be easily retryable with generateWithRetry
+      // so we use the history format with generateContent to leverage retry logic
       const contents = history ? [...history] : [];
       contents.push({ role: "user", parts: [{ text: message }] });
 
-      const response = await ai.models.generateContent({
+      const response = await generateWithRetry({
         model: "gemini-3-flash-preview",
         contents,
         config: {
@@ -124,10 +133,14 @@ async function startServer() {
         }
       });
 
+      if (!response) {
+        throw new Error("Không thể kết nối với Gemini AI sau nhiều lần thử.");
+      }
+
       res.json({ text: response.text });
     } catch (error: any) {
       console.error("Chat API Error:", error.message);
-      res.status(500).json({ error: "Rất tiếc, đã có lỗi kết nối. Bạn thử lại sau nhé!" });
+      res.status(500).json({ error: "Rất tiếc, mình đang gặp chút trục trặc trong việc kết nối. Bạn vui lòng thử lại sau giây lát nhé! 🛠️" });
     }
   });
 
@@ -150,35 +163,26 @@ async function startServer() {
     }
   }
 
-  // Only listen if not on Vercel and if this is the main module
-  if (!process.env.VERCEL && process.env.NODE_ENV !== "production") {
+  // Only listen if not on Vercel
+  if (!process.env.VERCEL) {
     app.listen(PORT, "0.0.0.0", () => {
-      console.log(`Server running on http://localhost:${PORT}`);
-    });
-  } else if (process.env.NODE_ENV === "production" && !process.env.VERCEL) {
-    app.listen(PORT, "0.0.0.0", () => {
-      console.log(`Server running on http://localhost:${PORT}`);
+      console.log(`Server running on http://0.0.0.0:${PORT}`);
     });
   }
   
   return app;
 }
 
-let appInstance: any = null;
+// Ensure startServer is called only once and reused
+const appPromise = startServer();
 
-// Start server if not running in a serverless environment
-if (!process.env.VERCEL) {
-  startServer().then(app => {
-    appInstance = app;
-  }).catch(err => {
-    console.error("Failed to start server:", err);
-  });
-}
+// For local development and Cloud Run
+appPromise.catch(err => {
+  console.error("Failed to start server:", err);
+});
 
-// Export for Vercel
+// For Vercel Serverless Functions
 export default async (req: any, res: any) => {
-  if (!appInstance) {
-    appInstance = await startServer();
-  }
-  return appInstance(req, res);
+  const app = await appPromise;
+  app(req, res);
 };
