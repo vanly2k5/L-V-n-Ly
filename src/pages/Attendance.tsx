@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Camera, QrCode, CheckCircle2, Search, Filter, TrendingUp, Calendar as CalendarIcon, MapPin, Award } from "lucide-react";
+import { Camera, QrCode, CheckCircle2, Search, TrendingUp, Calendar as CalendarIcon, MapPin, Award } from "lucide-react";
 import { CheckInRecord, Event } from "../types";
 import { useI18n } from "../lib/i18n";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
@@ -17,6 +17,7 @@ export default function Attendance({ history, onCheckIn, currentEvent }: Attenda
   const [mode, setMode] = useState<"in" | "out">("in");
   const [searchQuery, setSearchQuery] = useState("");
   const [filterType, setFilterType] = useState<string>("All");
+  const [filterStatus, setFilterStatus] = useState<string>("All");
   const { t } = useI18n();
 
   const handleScan = () => {
@@ -60,9 +61,20 @@ export default function Attendance({ history, onCheckIn, currentEvent }: Attenda
   const filteredHistory = history.filter(r => {
     const matchesSearch = r.eventName.toLowerCase().includes(searchQuery.toLowerCase()) || 
                          r.location.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesFilter = filterType === "All" || r.type === filterType;
-    return matchesSearch && matchesFilter;
+    const matchesType = filterType === "All" || r.type === filterType;
+    const itemStatus = r.status === "Đã check-in" ? "in" : "out";
+    const matchesStatus = filterStatus === "All" || itemStatus === filterStatus;
+    
+    return matchesSearch && matchesType && matchesStatus;
   });
+
+  const availableTypes = useMemo(() => {
+    const types = new Set<string>();
+    history.forEach(r => {
+      if (r.type) types.add(r.type);
+    });
+    return ["All", ...Array.from(types)];
+  }, [history]);
 
   return (
     <div className="pb-24">
@@ -223,34 +235,47 @@ export default function Attendance({ history, onCheckIn, currentEvent }: Attenda
         </div>
 
         <div className="flex flex-col gap-4 mb-6">
-          <div className="flex justify-between items-center">
+          <div className="flex justify-between items-center px-0.5">
             <h2 className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">{t('attendance.history')}</h2>
             <div className="flex items-center gap-2">
-              <button className="p-2 bg-white rounded-xl border border-[#E3E5F8] text-gray-400">
-                <Filter className="w-4 h-4" />
-              </button>
+              <div className="flex bg-white rounded-xl border border-[#E3E5F8] p-1">
+                {[
+                  { label: "Tất cả", key: "All" },
+                  { label: "Vào", key: "in" },
+                  { label: "Ra", key: "out" }
+                ].map((s) => (
+                  <button
+                    key={s.key}
+                    onClick={() => setFilterStatus(s.key)}
+                    className={`px-3 py-1 rounded-lg text-[9px] font-bold uppercase transition-all
+                      ${filterStatus === s.key ? "bg-app-primary text-white shadow-sm" : "text-gray-400"}`}
+                  >
+                    {s.label}
+                  </button>
+                ))}
+              </div>
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
                 <input 
                   type="text"
-                  placeholder="Tìm kiếm..."
+                  placeholder="Tìm..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9 pr-4 py-2 bg-white border border-[#E3E5F8] rounded-xl text-xs focus:ring-1 focus:ring-app-primary outline-none text-[#0D1340]"
+                  className="pl-9 pr-4 py-2 bg-white border border-[#E3E5F8] rounded-xl text-[10px] font-bold focus:ring-1 focus:ring-app-primary outline-none text-[#0D1340] w-32"
                 />
               </div>
             </div>
           </div>
 
           <div className="flex gap-2 overflow-x-auto no-scrollbar py-1">
-            {["All", "academic", "volunteer", "sports", "social"].map((type) => (
+            {availableTypes.map((type) => (
               <button
                 key={type}
                 onClick={() => setFilterType(type)}
                 className={`px-4 py-1.5 rounded-full text-[10px] font-bold whitespace-nowrap transition-all border
-                  ${filterType === type ? "bg-app-primary border-app-primary text-white" : "bg-white border-[#E3E5F8] text-gray-400"}`}
+                  ${filterType === type ? "bg-app-primary border-app-primary text-white shadow-md shadow-app-primary/20" : "bg-white border-[#E3E5F8] text-gray-400 hover:border-app-primary/30"}`}
               >
-                {type === "All" ? "Tất cả" : type.toUpperCase()}
+                {type === "All" ? "Tất cả" : (type && typeof type === 'string' ? type.toUpperCase() : "Khác")}
               </button>
             ))}
           </div>
