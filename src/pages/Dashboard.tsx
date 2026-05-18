@@ -133,7 +133,7 @@ export default function Dashboard({ userData, history }: DashboardProps) {
         <div className="mx-5 bg-white rounded-[24px] p-6 shadow-sm border border-[#E3E5F8] mb-6">
           <div className="flex justify-between items-center mb-6">
             <div>
-              <h2 className="text-sm font-bold text-[#0D1340]">Tổng hợp điểm RL</h2>
+              <h2 className="text-sm font-bold text-[#0D1340] font-sora">Tổng hợp điểm RL</h2>
               <p className="text-[10px] text-gray-400 font-medium">Thống kê 6 tháng gần nhất</p>
             </div>
             <div className="flex items-center gap-2">

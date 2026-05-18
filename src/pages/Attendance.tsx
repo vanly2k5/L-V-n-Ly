@@ -81,26 +81,26 @@ export default function Attendance({ history, onCheckIn, currentEvent }: Attenda
       <header className="dark-gradient px-6 pt-16 pb-20 text-white relative z-10">
         <div className="flex justify-between items-start">
           <div>
-            <p className="text-white/60 text-[10px] uppercase tracking-widest font-bold mb-1">Smart Attendance</p>
+            <p className="text-white/60 text-[10px] uppercase tracking-widest font-bold mb-1 font-sora">Smart Attendance</p>
             <h1 className="text-2xl font-bold font-sora tracking-tight">{t('attendance.title')}</h1>
           </div>
-          <div className="bg-white/10 p-2 rounded-2xl backdrop-blur-md border border-white/20">
+          <div className="bg-white/10 p-2.5 rounded-2xl backdrop-blur-md border border-white/20 shadow-lg">
             <Award className="w-5 h-5 text-yellow-400" />
           </div>
         </div>
         
         <div className="grid grid-cols-3 gap-3 mt-8">
-          <div className="bg-white/10 backdrop-blur-md rounded-2xl p-3 border border-white/10">
-            <p className="text-[9px] text-white/50 uppercase font-bold">Tổng điểm</p>
-            <p className="text-lg font-bold">{stats.totalPoints}</p>
+          <div className="bg-white/10 backdrop-blur-md rounded-2xl p-3.5 border border-white/10 shadow-inner">
+            <p className="text-[9px] text-white/50 uppercase font-bold tracking-wider mb-1">Tổng điểm</p>
+            <p className="text-xl font-bold font-sora">{stats.totalPoints}</p>
           </div>
-          <div className="bg-white/10 backdrop-blur-md rounded-2xl p-3 border border-white/10">
-            <p className="text-[9px] text-white/50 uppercase font-bold">Sự kiện</p>
-            <p className="text-lg font-bold">{stats.totalEvents}</p>
+          <div className="bg-white/10 backdrop-blur-md rounded-2xl p-3.5 border border-white/10 shadow-inner">
+            <p className="text-[9px] text-white/50 uppercase font-bold tracking-wider mb-1">Sự kiện</p>
+            <p className="text-xl font-bold font-sora">{stats.totalEvents}</p>
           </div>
-          <div className="bg-white/10 backdrop-blur-md rounded-2xl p-3 border border-white/10">
-            <p className="text-[9px] text-white/50 uppercase font-bold">Hăng hái</p>
-            <p className="text-lg font-bold capitalize truncate">{stats.topType}</p>
+          <div className="bg-white/10 backdrop-blur-md rounded-2xl p-3.5 border border-white/10 shadow-inner">
+            <p className="text-[9px] text-white/50 uppercase font-bold tracking-wider mb-1">Hăng hái</p>
+            <p className="text-xl font-bold font-sora capitalize truncate">{stats.topType}</p>
           </div>
         </div>
       </header>
@@ -123,13 +123,17 @@ export default function Attendance({ history, onCheckIn, currentEvent }: Attenda
           </div>
 
           <div className="flex flex-col items-center mb-6">
-            <div className="w-12 h-12 bg-app-secondary rounded-2xl flex items-center justify-center text-2xl mb-3">
+            <div className="w-14 h-14 bg-app-secondary rounded-2xl flex items-center justify-center text-3xl mb-4 shadow-sm">
               {mode === "in" ? currentEvent.icon : "🏁"}
             </div>
-            <h3 className="text-sm font-bold text-[#0D1340] leading-tight px-4">{currentEvent.title}</h3>
-            <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 mt-2 text-[10px] text-gray-400 font-medium">
-              <span className="flex items-center gap-1"><CalendarIcon className="w-3 h-3" /> {currentEvent.date}</span>
-              <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {currentEvent.location}</span>
+            <h3 className="text-sm font-bold text-[#0D1340] leading-tight px-4 font-sora">{currentEvent.title}</h3>
+            <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 mt-3 text-[10px] text-gray-400 font-medium">
+              <span className="flex items-center gap-1.5 bg-gray-50 px-2 py-0.5 rounded-md border border-gray-100">
+                <CalendarIcon className="w-3 h-3 text-app-primary/60" /> {currentEvent.date}
+              </span>
+              <span className="flex items-center gap-1.5 bg-gray-50 px-2 py-0.5 rounded-md border border-gray-100">
+                <MapPin className="w-3 h-3 text-app-primary/60" /> {currentEvent.location}
+              </span>
             </div>
           </div>
 
@@ -235,33 +239,38 @@ export default function Attendance({ history, onCheckIn, currentEvent }: Attenda
         </div>
 
         <div className="flex flex-col gap-4 mb-6">
-          <div className="flex justify-between items-center px-0.5">
-            <h2 className="text-[11px] font-bold text-gray-400 uppercase tracking-widest font-sora">{t('attendance.history')}</h2>
-            <div className="flex items-center gap-2">
-              <div className="flex bg-white rounded-xl border border-[#E3E5F8] p-1 shadow-sm">
-                {[
-                  { label: "Tất cả", key: "All" },
-                  { label: "Vào", key: "in" },
-                  { label: "Ra", key: "out" }
-                ].map((s) => (
-                  <button
-                    key={s.key}
-                    onClick={() => setFilterStatus(s.key)}
-                    className={`px-3 py-1 rounded-lg text-[9px] font-bold uppercase transition-all
-                      ${filterStatus === s.key ? "bg-app-primary text-white shadow-sm" : "text-gray-400"}`}
-                  >
-                    {s.label}
-                  </button>
-                ))}
+          <div className="flex flex-col gap-3">
+            <div className="flex justify-between items-center px-0.5">
+              <h2 className="text-[11px] font-bold text-gray-400 uppercase tracking-widest font-sora">{t('attendance.history')}</h2>
+              <div className="flex items-center gap-2">
+                <div className="flex bg-white rounded-xl border border-[#E3E5F8] p-1 shadow-sm">
+                  {[
+                    { label: "Tất cả", key: "All" },
+                    { label: "Vào", key: "in" },
+                    { label: "Ra", key: "out" }
+                  ].map((s) => (
+                    <button
+                      key={s.key}
+                      onClick={() => setFilterStatus(s.key)}
+                      className={`px-3 py-1.5 rounded-lg text-[9px] font-bold uppercase transition-all
+                        ${filterStatus === s.key ? "bg-app-primary text-white shadow-sm" : "text-gray-400 hover:text-app-primary/60"}`}
+                    >
+                      {s.label}
+                    </button>
+                  ))}
+                </div>
               </div>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+            </div>
+
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <input 
                   type="text"
-                  placeholder="Tìm..."
+                  placeholder="Tìm kiếm lịch sử..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9 pr-4 py-2 bg-white border border-[#E3E5F8] rounded-xl text-[10px] font-bold focus:ring-1 focus:ring-app-primary outline-none text-[#0D1340] w-32"
+                  className="pl-10 pr-4 py-3 bg-white border border-[#E3E5F8] rounded-2xl text-[11px] font-medium focus:ring-1 focus:ring-app-primary outline-none text-[#0D1340] w-full shadow-sm placeholder:text-gray-300"
                 />
               </div>
             </div>
@@ -272,8 +281,8 @@ export default function Attendance({ history, onCheckIn, currentEvent }: Attenda
               <button
                 key={type}
                 onClick={() => setFilterType(type)}
-                className={`px-4 py-1.5 rounded-full text-[10px] font-bold whitespace-nowrap transition-all border
-                  ${filterType === type ? "bg-app-primary border-app-primary text-white shadow-md shadow-app-primary/20" : "bg-white border-[#E3E5F8] text-gray-400 hover:border-app-primary/30"}`}
+                className={`px-5 py-2 rounded-xl text-[10px] font-bold whitespace-nowrap transition-all border
+                  ${filterType === type ? "bg-app-primary border-app-primary text-white shadow-lg shadow-app-primary/20" : "bg-white border-[#E3E5F8] text-gray-400 hover:border-app-primary/30"}`}
               >
                 {type === "All" ? "Tất cả" : (type && typeof type === 'string' ? type.toUpperCase() : "Khác")}
               </button>
