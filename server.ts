@@ -1,6 +1,5 @@
 import express from "express";
 import path from "path";
-import { createServer as createViteServer } from "vite";
 import { GoogleGenAI } from "@google/genai";
 import dotenv from "dotenv";
 
@@ -134,22 +133,52 @@ async function startServer() {
 
   // Vite integration
   if (process.env.NODE_ENV !== "production") {
+    const { createServer: createViteServer } = await import("vite");
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",
     });
     app.use(vite.middlewares);
   } else {
-    const distPath = path.join(process.cwd(), "dist");
-    app.use(express.static(distPath));
-    app.get("*", (req, res) => {
-      res.sendFile(path.join(distPath, "index.html"));
-    });
+    // Only serve static files if not on Vercel (where Vercel handles them)
+    if (!process.env.VERCEL) {
+      const distPath = path.join(process.cwd(), "dist");
+      app.use(express.static(distPath));
+      app.get("*", (req, res) => {
+        res.sendFile(path.join(distPath, "index.html"));
+      });
+    }
   }
 
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+  // Only listen if not on Vercel and if this is the main module
+  if (!process.env.VERCEL && process.env.NODE_ENV !== "production") {
+    app.listen(PORT, "0.0.0.0", () => {
+      console.log(`Server running on http://localhost:${PORT}`);
+    });
+  } else if (process.env.NODE_ENV === "production" && !process.env.VERCEL) {
+    app.listen(PORT, "0.0.0.0", () => {
+      console.log(`Server running on http://localhost:${PORT}`);
+    });
+  }
+  
+  return app;
+}
+
+let appInstance: any = null;
+
+// Start server if not running in a serverless environment
+if (!process.env.VERCEL) {
+  startServer().then(app => {
+    appInstance = app;
+  }).catch(err => {
+    console.error("Failed to start server:", err);
   });
 }
 
-startServer();
+// Export for Vercel
+export default async (req: any, res: any) => {
+  if (!appInstance) {
+    appInstance = await startServer();
+  }
+  return appInstance(req, res);
+};
