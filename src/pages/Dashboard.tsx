@@ -25,33 +25,34 @@ export default function Dashboard({ userData, history }: DashboardProps) {
 
   // Dynamic Semester Trend Data
   const dynamicPointsTrendData = [
-    { semester: "HK1 23-24", points: 65, attendance: 70 },
-    { semester: "HK2 23-24", points: 72, attendance: 75 },
-    { semester: "HK1 24-25", points: 72, attendance: 75 },
-    { semester: "HK2 24-25", points: 85, attendance: 88 },
-    { semester: "HK1 25-26", points: 78, attendance: 82 },
-    { semester: "HK2 25-26", points: userData.points, attendance: attendanceRate },
+    { semester: "HK1 23-24", points: 65, status: "Hoàn thành" },
+    { semester: "HK2 23-24", points: 72, status: "Hoàn thành" },
+    { semester: "HK1 24-25", points: 72, status: "Hoàn thành" },
+    { semester: "HK2 24-25", points: 85, status: "Xuất sắc" },
+    { semester: "HK1 25-26", points: 78, status: "Khá" },
+    { semester: "HK2 25-26", points: userData.points, status: userData.points > 80 ? "Xuất sắc" : "Tốt" },
   ];
 
   // Calculate monthly points from history
   const months = ["T12", "T01", "T02", "T03", "T04", "T05"];
-  const dynamicMonthlyPointsData = months.map(m => {
+  const dynamicMonthlyPointsData = months.map((m, idx) => {
     const monthNum = m.substring(1);
     
     const historyPoints = history
       .filter(h => {
-        // Updated search for date field in CheckInRecord
         const datePart = h.date || ""; 
         return datePart.endsWith(`/${monthNum}`);
       })
       .reduce((acc, curr) => acc + curr.points, 0);
     
-    const points = historyPoints || (m === "T05" ? 12 : [8, 15, 5, 20, 10, 0][months.indexOf(m)]);
+    // Smooth default data if no history
+    const defaultPoints = [12, 18, 8, 22, 15, 10][idx];
+    const points = historyPoints || defaultPoints;
     
     return {
       month: m,
       points: points,
-      color: points > 15 ? "#5B50D6" : "#A5B4FC"
+      color: points > 18 ? "#5B50D6" : (points > 12 ? "#7C72E0" : "#A5B4FC")
     };
   });
 

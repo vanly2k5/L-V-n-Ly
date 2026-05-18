@@ -82,7 +82,7 @@ export default function Attendance({ history, onCheckIn, currentEvent }: Attenda
         <div className="flex justify-between items-start">
           <div>
             <p className="text-white/60 text-[10px] uppercase tracking-widest font-bold mb-1">Smart Attendance</p>
-            <h1 className="text-2xl font-bold font-sans">{t('attendance.title')}</h1>
+            <h1 className="text-2xl font-bold font-sora tracking-tight">{t('attendance.title')}</h1>
           </div>
           <div className="bg-white/10 p-2 rounded-2xl backdrop-blur-md border border-white/20">
             <Award className="w-5 h-5 text-yellow-400" />
@@ -208,8 +208,8 @@ export default function Attendance({ history, onCheckIn, currentEvent }: Attenda
       <div className="px-6 mt-10">
         <div className="bg-white rounded-3xl p-6 border border-[#E3E5F8] shadow-sm mb-8">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">Xu hướng tham gia</h2>
-            <div className="flex items-center gap-1 text-[10px] font-bold text-app-primary">
+            <h2 className="text-[11px] font-bold text-gray-400 uppercase tracking-widest font-sora">Xu hướng tham gia</h2>
+            <div className="flex items-center gap-1 text-[10px] font-bold text-app-primary bg-app-secondary px-2 py-0.5 rounded-lg">
               <TrendingUp className="w-3 h-3" /> Tăng 12%
             </div>
           </div>
@@ -236,9 +236,9 @@ export default function Attendance({ history, onCheckIn, currentEvent }: Attenda
 
         <div className="flex flex-col gap-4 mb-6">
           <div className="flex justify-between items-center px-0.5">
-            <h2 className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">{t('attendance.history')}</h2>
+            <h2 className="text-[11px] font-bold text-gray-400 uppercase tracking-widest font-sora">{t('attendance.history')}</h2>
             <div className="flex items-center gap-2">
-              <div className="flex bg-white rounded-xl border border-[#E3E5F8] p-1">
+              <div className="flex bg-white rounded-xl border border-[#E3E5F8] p-1 shadow-sm">
                 {[
                   { label: "Tất cả", key: "All" },
                   { label: "Vào", key: "in" },

@@ -30,7 +30,7 @@ export interface AIRecommendation {
   reason: string;
 }
 
-export type SavedItemStatus = "Quan tâm" | "Đã đăng ký" | "Đã nộp đơn" | "Hoàn thành";
+export type SavedItemStatus = "Quan tâm" | "Đã đăng ký" | "Đã nộp đơn" | "Hoàn thành" | "Bị từ chối" | "Đã tham gia";
 
 export interface SavedItem {
   id: string;
