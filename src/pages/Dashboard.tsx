@@ -4,6 +4,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { TrendingUp, Award, Clock, Target, BarChart3, ChevronRight } from "lucide-react";
 import { useI18n } from "../lib/i18n";
 import { CheckInRecord } from "../types";
+import { generateAttendancePDF } from "../lib/pdfGenerator";
 
 interface DashboardProps {
   userData: {
@@ -25,33 +26,34 @@ export default function Dashboard({ userData, history }: DashboardProps) {
 
   // Dynamic Semester Trend Data
   const dynamicPointsTrendData = [
-    { semester: "HK1 23-24", points: 65, attendance: 70 },
-    { semester: "HK2 23-24", points: 72, attendance: 75 },
-    { semester: "HK1 24-25", points: 72, attendance: 75 },
-    { semester: "HK2 24-25", points: 85, attendance: 88 },
-    { semester: "HK1 25-26", points: 78, attendance: 82 },
-    { semester: "HK2 25-26", points: userData.points, attendance: attendanceRate },
+    { semester: "HK1 23-24", points: 65, status: "Hoàn thành" },
+    { semester: "HK2 23-24", points: 72, status: "Hoàn thành" },
+    { semester: "HK1 24-25", points: 72, status: "Hoàn thành" },
+    { semester: "HK2 24-25", points: 85, status: "Xuất sắc" },
+    { semester: "HK1 25-26", points: 78, status: "Khá" },
+    { semester: "HK2 25-26", points: userData.points, status: userData.points > 80 ? "Xuất sắc" : "Tốt" },
   ];
 
   // Calculate monthly points from history
   const months = ["T12", "T01", "T02", "T03", "T04", "T05"];
-  const dynamicMonthlyPointsData = months.map(m => {
+  const dynamicMonthlyPointsData = months.map((m, idx) => {
     const monthNum = m.substring(1);
     
     const historyPoints = history
       .filter(h => {
-        // Updated search for date field in CheckInRecord
         const datePart = h.date || ""; 
         return datePart.endsWith(`/${monthNum}`);
       })
       .reduce((acc, curr) => acc + curr.points, 0);
     
-    const points = historyPoints || (m === "T05" ? 12 : [8, 15, 5, 20, 10, 0][months.indexOf(m)]);
+    // Smooth default data if no history
+    const defaultPoints = [12, 18, 8, 22, 15, 10][idx];
+    const points = historyPoints || defaultPoints;
     
     return {
       month: m,
       points: points,
-      color: points > 15 ? "#5B50D6" : "#A5B4FC"
+      color: points > 18 ? "#5B50D6" : (points > 12 ? "#7C72E0" : "#A5B4FC")
     };
   });
 
@@ -132,7 +134,7 @@ export default function Dashboard({ userData, history }: DashboardProps) {
         <div className="mx-5 bg-white rounded-[24px] p-6 shadow-sm border border-[#E3E5F8] mb-6">
           <div className="flex justify-between items-center mb-6">
             <div>
-              <h2 className="text-sm font-bold text-[#0D1340]">Tổng hợp điểm RL</h2>
+              <h2 className="text-sm font-bold text-[#0D1340] font-sora">Tổng hợp điểm RL</h2>
               <p className="text-[10px] text-gray-400 font-medium">Thống kê 6 tháng gần nhất</p>
             </div>
             <div className="flex items-center gap-2">
@@ -185,7 +187,12 @@ export default function Dashboard({ userData, history }: DashboardProps) {
         <div className="mx-5 mb-8">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">{t('attendance.history')}</h2>
-            <button className="text-[10px] font-bold text-app-primary flex items-center gap-1 uppercase">Xuất PDF <ChevronRight size={10} /></button>
+            <button 
+              onClick={() => generateAttendancePDF(userData, history)}
+              className="text-[10px] font-bold text-app-primary flex items-center gap-1 uppercase hover:underline transition-all"
+            >
+              Xuất PDF <ChevronRight size={10} />
+            </button>
           </div>
           <div className="space-y-3">
              {history.slice(0, 4).map((record, i) => (

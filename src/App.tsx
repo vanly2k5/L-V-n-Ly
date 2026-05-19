@@ -421,7 +421,7 @@ function AppContent() {
           {tab === 2 && <Events key="events" savedItems={savedItems} onToggleSave={handleToggleSave} events={FEATURED_EVENTS} scholarships={FEATURED_SCHOLARSHIPS} />}
           {tab === 3 && <SavedItems key="saved" items={savedItems} onUpdateStatus={handleUpdateStatus} onRemove={handleRemoveSaved} />}
           {tab === 4 && <Attendance key="attendance" history={checkInHistory} onCheckIn={handleCheckIn} currentEvent={FEATURED_EVENTS[currentEventIndex]} />}
-          {tab === 5 && <Profile key="profile" initialData={userData} onUpdate={handleProfileUpdate} />}
+          {tab === 5 && <Profile key="profile" initialData={userData} history={checkInHistory} onUpdate={handleProfileUpdate} />}
         </AnimatePresence>
       </main>
 
