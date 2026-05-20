@@ -97,42 +97,50 @@ const FEATURED_EVENTS: Event[] = [
   }
 ];
 
-const FEATURED_SCHOLARSHIPS: Scholarship[] = [
+const FEATURED_SCHOLARSHIPS: (Scholarship & { type: string; provider: string })[] = [
   {
     id: "s1",
     name: "Học bổng Chính phủ Ru-ma-ni 2026",
     value: "Toàn phần",
-    deadline: "Còn 12 ngày",
+    deadline: "31/05/2026",
     progress: 45,
     icon: "🇷🇴",
     bgColor: "#E3F9EE",
+    type: "international",
+    provider: "ARICE"
   },
   {
     id: "s2",
     name: "Quỹ học bổng VAA 2026",
     value: "6.0 tỷ đồng",
-    deadline: "Còn 42 ngày",
+    deadline: "30/06/2026",
     progress: 15,
     icon: "✈️",
     bgColor: "#EEEDFD",
+    type: "academic",
+    provider: "Học viện Hàng không"
   },
   {
     id: "s3",
     name: "Học bổng Vingroup 2026",
     value: "50 triệu",
-    deadline: "Đã qua",
+    deadline: "15/01/2026",
     progress: 100,
     icon: "🎓",
     bgColor: "#EEEDFD",
+    type: "corporate",
+    provider: "Vingroup"
   },
   {
     id: "s4",
     name: "Học bổng Odon Vallet",
     value: "20 triệu",
-    deadline: "Sắp mở",
+    deadline: "15/09/2026",
     progress: 0,
     icon: "🌸",
     bgColor: "#FFF3E0",
+    type: "support",
+    provider: "Rencontres du Vietnam"
   },
 ];
 
@@ -370,14 +378,32 @@ function AppContent() {
           interests: ["AI", "Khởi nghiệp", "Tình nguyện"]
         })
       });
-      const data = await response.json();
-      setRecommendations(Array.isArray(data) ? data : []);
-    } catch (error) {
+
+      const contentType = response.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
+        const data = await response.json();
+        setRecommendations(Array.isArray(data) ? data : []);
+      } else {
+        const text = await response.text();
+        console.error("Non-JSON recommendations response:", text);
+        setRecommendations([]);
+        showToast("Không thể tải đề xuất vào lúc này", "info");
+      }
+    } catch (error: any) {
       console.error("AI Error:", error);
       setRecommendations([]);
+      showToast(error.message || "Lỗi kết nối", "info");
     } finally {
       setAiLoading(false);
     }
+  };
+
+  const handleGoToAttendance = (eventId?: string) => {
+    if (eventId) {
+      const idx = FEATURED_EVENTS.findIndex(e => e.id === eventId);
+      if (idx !== -1) setCurrentEventIndex(idx);
+    }
+    setTab(4);
   };
 
   const tabs = [
@@ -418,7 +444,7 @@ function AppContent() {
         <AnimatePresence mode="wait">
           {tab === 0 && <Home key="home" userData={userData} onOpenAI={handleOpenAI} onSeeAllEvents={() => setTab(2)} onGoToDashboard={() => setTab(1)} savedItems={savedItems} onToggleSave={handleToggleSave} events={FEATURED_EVENTS} scholarships={FEATURED_SCHOLARSHIPS} />}
           {tab === 1 && <Dashboard key="dashboard" userData={userData} history={checkInHistory} />}
-          {tab === 2 && <Events key="events" savedItems={savedItems} onToggleSave={handleToggleSave} events={FEATURED_EVENTS} scholarships={FEATURED_SCHOLARSHIPS} />}
+          {tab === 2 && <Events key="events" savedItems={savedItems} onToggleSave={handleToggleSave} events={FEATURED_EVENTS} scholarships={FEATURED_SCHOLARSHIPS} onGoToAttendance={handleGoToAttendance} />}
           {tab === 3 && <SavedItems key="saved" items={savedItems} onUpdateStatus={handleUpdateStatus} onRemove={handleRemoveSaved} />}
           {tab === 4 && <Attendance key="attendance" history={checkInHistory} onCheckIn={handleCheckIn} currentEvent={FEATURED_EVENTS[currentEventIndex]} />}
           {tab === 5 && <Profile key="profile" initialData={userData} history={checkInHistory} onUpdate={handleProfileUpdate} />}

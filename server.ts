@@ -1,56 +1,10 @@
 import express from "express";
 import path from "path";
-import { GoogleGenAI } from "@google/genai";
 import dotenv from "dotenv";
+import { generateWithRetry } from "./src/lib/gemini.js";
 
 if (!process.env.VERCEL) {
   dotenv.config();
-}
-
-// Initialize Gemini lazily to ensure environment variables are loaded
-let genAI: any = null;
-
-function getGenAI() {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    throw new Error("GEMINI_API_KEY is not configured.");
-  }
-  if (!genAI) {
-    genAI = new GoogleGenAI({
-      apiKey,
-      httpOptions: {
-        headers: {
-          'User-Agent': 'aistudio-build',
-        }
-      }
-    });
-  }
-  return genAI;
-}
-
-// Helper for calling Gemini with retry
-async function generateWithRetry(params: any, retries = 2) {
-  const ai = getGenAI();
-  for (let i = 0; i <= retries; i++) {
-    try {
-      const response = await ai.models.generateContent(params);
-      return response;
-    } catch (error: any) {
-      console.error(`Gemini Error (Attempt ${i + 1}):`, error.message);
-      
-      const isRetryable = error?.status === 503 || 
-                         error?.message?.includes("503") || 
-                         error?.message?.includes("high demand") ||
-                         error?.status === 429;
-      
-      if (isRetryable && i < retries) {
-        await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
-        continue;
-      }
-      throw error;
-    }
-  }
-  return null;
 }
 
 const app = express();
@@ -66,32 +20,36 @@ app.post("/api/recommendations", async (req, res) => {
     }
 
     const { profile, interests } = req.body;
+    console.log("Generating recommendations for:", profile?.name);
 
     const prompt = `Bạn là chuyên gia tư vấn giáo dục toàn cầu của CampusHub. 
     Dựa trên hồ sơ sinh viên sau:
-    - Tên: ${profile.name}
-    - Chuyên ngành: ${profile.major}
+    - Tên: ${profile?.name || "Sinh viên"}
+    - Chuyên ngành: ${profile?.major || "Chưa rõ"}
     - Sở thích: ${interests && interests.length > 0 ? interests.join(", ") : "Chưa cập nhật"}
 
     Nhiệm vụ: Hãy đề xuất từ 3 đến 5 cơ hội (sự kiện, cuộc thi, hoặc học bổng) đa dạng và hấp dẫn nhất, phù hợp với chuyên ngành và sở thích của sinh viên.
     
     Yêu cầu nội dung:
-    1. Đa dạng hóa nguồn lực: Không chỉ giới hạn ở Việt Nam. Ngoài các cơ hội tại các trường đại học hàng đầu Việt Nam (VNU, HUST, UEH...), hãy chủ động đề xuất các cơ hội quốc tế từ các tổ chức uy tín (UNESCO, Google Student Club, ASEAN Foundation...).
-    2. Tính thuyết phục: Giải thích rõ TẠI SAO cơ hội này phù hợp với ${profile.name} dựa trên mục tiêu sự nghiệp và chuyên ngành của họ.
-    3. Tính thực tế: Ưu tiên các cơ hội có thật, đang diễn ra hoặc thường niên có uy tín cao.
+    1. Đa dạng hóa nguồn lực: Chủ động đề xuất các cơ hội quốc tế từ các tổ chức uy tín (UNESCO, Google Student Club, ASEAN Foundation...) bên cạnh các cơ hội tại Việt Nam.
+    2. Tính thuyết phục: Giải thích rõ TẠI SAO cơ hội này phù hợp.
+    3. Tính thực tế: Ưu tiên các cơ hội có thật, đang diễn ra hoặc thường niên.
 
     QUY TẮC PHẢN HỒI:
     - CHỈ trả về mảng JSON duy nhất. Không có văn bản giải thích nào khác.
     - Định dạng JSON mảng các đối tượng: [{ "type": "event" | "scholarship", "title": string, "reason": string }]`;
 
     const response = await generateWithRetry({
-      model: "gemini-flash-latest",
+      model: "gemini-3-flash-preview",
       contents: [{ role: 'user', parts: [{ text: prompt }] }]
     });
     
-    if (!response) return res.json([]);
+    if (!response || !response.text) {
+      console.warn("Recommendations API: empty response from Gemini");
+      return res.json([]);
+    }
     
-    const text = response.text || "[]";
+    const text = response.text;
     
     try {
       let jsonStr = text.trim();
@@ -112,7 +70,7 @@ app.post("/api/recommendations", async (req, res) => {
     }
   } catch (error: any) {
     console.error("Recommendations API Error:", error.message);
-    res.json([]);
+    res.status(500).json({ error: "Lỗi khi tạo đề xuất", details: error.message });
   }
 });
 
@@ -122,40 +80,58 @@ app.post("/api/chat", async (req, res) => {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
       console.error("Chat API Error: GEMINI_API_KEY is missing");
-      return res.status(500).json({ error: "Chưa cấu hình Gemini API Key. Vui lòng kiểm tra lại trong phần Environment Variables!" });
+      return res.status(500).json({ 
+        error: "Chưa cấu hình Gemini API Key. Bạn hãy kiểm tra lại trong phần Settings > Secrets nhé!" 
+      });
     }
 
     const { message, history } = req.body;
+    console.log("Chat request received:", message);
 
     const contents = history ? [...history] : [];
     contents.push({ role: "user", parts: [{ text: message }] });
 
     const response = await generateWithRetry({
-      model: "gemini-flash-latest",
+      model: "gemini-3-flash-preview",
       contents,
       config: {
         systemInstruction: "Bạn là CampusHub Assistant - trợ lý sinh viên ảo thông minh. Hãy trả lời bằng tiếng Việt, súc tích, thân thiện và luôn sẵn lòng hỗ trợ về học tập, ngoại khóa, học bổng. Sử dụng emoji phù hợp.",
       }
     });
 
-    if (!response) {
-      throw new Error("Không thể nhận phản hồi từ Gemini AI.");
+    if (!response || !response.text) {
+      throw new Error("Không thể nhận phản hồi văn bản từ Gemini AI.");
     }
 
     res.json({ text: response.text });
   } catch (error: any) {
     console.error("Chat API Detailed Error:", error);
     res.status(500).json({ 
-      error: "Rất tiếc, mình đang gặp chút trục trặc trong việc kết nối. Bạn vui lòng thử lại sau giây lát nhé! 🛠️",
-      details: error.message,
-      stack: process.env.NODE_ENV !== "production" ? error.stack : undefined
+      error: "Hệ thống đang bận một chút, bạn thử lại sau giây lát nhé! 🛠️",
+      details: error.message
     });
   }
 });
 
 // Health check endpoint
 app.get("/api/health", (req, res) => {
-  res.json({ status: "ok", environment: process.env.VERCEL ? "vercel" : "classic", hasApiKey: !!process.env.GEMINI_API_KEY });
+  const apiKey = process.env.GEMINI_API_KEY;
+  res.json({ 
+    status: "ok", 
+    environment: process.env.VERCEL ? "vercel" : "classic", 
+    hasApiKey: !!apiKey,
+    apiKeyPrefix: apiKey ? apiKey.substring(0, 5) + "..." : "none"
+  });
+});
+
+// Global Error Handler
+app.use((err: any, req: any, res: any, next: any) => {
+  console.error("Global Error Handler Catch-all:", err);
+  res.status(500).json({ 
+    error: "Lỗi hệ thống nghiêm trọng", 
+    details: err.message,
+    stack: process.env.NODE_ENV !== "production" ? err.stack : undefined 
+  });
 });
 
 // Vite Middleware & Static Files

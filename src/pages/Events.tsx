@@ -4,21 +4,6 @@ import { Bookmark, Calendar, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, 
 import { Event, SavedItem, Scholarship } from "../types";
 import { useI18n } from "../lib/i18n";
 
-const events: Event[] = [
-  { id: "1", color: "#5B50D6", icon: "🚀", title: "Workshop Khởi nghiệp ĐHQGHN 2026", organizer: "CLB Kinh doanh & ĐM · Quốc tế", date: "14/01", time: "14:00–17:00", location: "B401", points: 5, type: "academic" },
-  { id: "2", color: "#1DB882", icon: "❤️", title: "Hiến máu tình nguyện HK2/2026", organizer: "Hội Chữ Thập Đỏ ĐHQGHN", date: "16/01", time: "07:30–11:00", location: "Sân A", points: 10, type: "volunteer" },
-  { id: "3", color: "#F0A030", icon: "💡", title: "Hackathon AI — Giải pháp xanh", organizer: "CLB Công nghệ UET", date: "18/01", time: "08:00–20:00", location: "UET", points: 8, type: "academic" },
-  { id: "4", color: "#E84040", icon: "🏃", title: "Giải chạy bộ ĐHQGHN 2026", organizer: "TT Thể dục thể thao ĐHQGHN", date: "22/01", time: "06:00–09:00", location: "Sân VĐ", points: 5, type: "sports" },
-  { id: "5", color: "#7B72E9", icon: "🎸", title: "Liên hoan Âm nhạc Sinh viên", organizer: "CLB Âm nhạc", date: "25/01", time: "18:00–21:00", location: "Hội trường lớn", points: 3, type: "club" },
-];
-
-const scholarships: (Scholarship & { type: string; provider: string })[] = [
-  { id: "s1", name: "Học bổng Samsung Talent 2026", value: "30,000,000đ", deadline: "15/02/2026", progress: 45, icon: "💻", bgColor: "#E3F2FD", type: "corporate", provider: "Samsung Vina" },
-  { id: "s2", name: "Học bổng Thắp sáng Ước mơ", value: "10,000,000đ", deadline: "20/02/2026", progress: 12, icon: "✨", bgColor: "#FFF9C4", type: "volunteer", provider: "Đoàn Thanh niên ĐHQGHN" },
-  { id: "s3", name: "Học bổng Erasmus+ Trao đổi Châu Âu", value: "Toàn phần", deadline: "30/03/2026", progress: 80, icon: "🇪🇺", bgColor: "#E8EAF6", type: "international", provider: "EU Commission" },
-  { id: "s4", name: "Học bổng Khuyến khích Học tập HK2", value: "15,000,000đ", deadline: "10/02/2026", progress: 5, icon: "🎓", bgColor: "#F1F8E9", type: "academic", provider: "ĐHQGHN" },
-];
-
 const SkeletonCard = ({ index }: { index: number, key?: string }) => (
   <motion.div
     initial={{ opacity: 0, y: 10 }}
@@ -62,13 +47,36 @@ const SkeletonCard = ({ index }: { index: number, key?: string }) => (
 interface EventsProps {
   savedItems: SavedItem[];
   onToggleSave: (item: Omit<SavedItem, "id" | "status">) => void;
+  onGoToAttendance?: (id?: string) => void;
   events?: Event[];
   scholarships?: (Scholarship & { type?: string; provider?: string })[];
   key?: string;
 }
 
-export default function Events({ savedItems, onToggleSave, events: propsEvents, scholarships: propsScholarships }: EventsProps) {
+export default function Events({ savedItems, onToggleSave, onGoToAttendance, events: propsEvents, scholarships: propsScholarships }: EventsProps) {
   const { t, lang } = useI18n();
+  
+  const getEventTagColor = (type: string) => {
+    switch (type) {
+      case "academic": return "text-blue-600 bg-blue-50";
+      case "volunteer": return "text-green-600 bg-green-50";
+      case "sports": return "text-orange-600 bg-orange-50";
+      case "club": return "text-purple-600 bg-purple-50";
+      case "social": return "text-pink-600 bg-pink-50";
+      default: return "text-gray-500 bg-gray-50";
+    }
+  };
+
+  const getSchTagColor = (type: string) => {
+    switch (type) {
+      case "academic": return "text-blue-600 bg-blue-50";
+      case "corporate": return "text-indigo-600 bg-indigo-50";
+      case "international": return "text-purple-600 bg-purple-50";
+      case "support": return "text-orange-600 bg-orange-50";
+      case "talent": return "text-teal-600 bg-teal-50";
+      default: return "text-gray-500 bg-gray-50";
+    }
+  };
   
   // Use props if provided, otherwise fallback to local constants
   const allEvents = propsEvents || [
@@ -83,8 +91,14 @@ export default function Events({ savedItems, onToggleSave, events: propsEvents, 
   const allScholarships = propsScholarships || [
     { id: "s1", name: "Học bổng Chính phủ Ru-ma-ni 2026", value: "Toàn phần", deadline: "31/05/2026", progress: 45, icon: "🇷🇴", bgColor: "#E3F9EE", type: "international", provider: "ARICE" },
     { id: "s2", name: "Quỹ học bổng VAA 2026", value: "6.0 tỷ đồng", deadline: "30/06/2026", progress: 15, icon: "✈️", bgColor: "#EEEDFD", type: "academic", provider: "Học viện Hàng không" },
-    { id: "s3", name: "Học bổng Vingroup 2026", value: "50 triệu", deadline: "Hết hạn", progress: 100, icon: "🎓", bgColor: "#EEEDFD", type: "academic", provider: "Vingroup" },
+    { id: "s3", name: "Học bổng Vingroup 2026", value: "50 triệu", deadline: "Hết hạn", progress: 100, icon: "🎓", bgColor: "#EEEDFD", type: "corporate", provider: "Vingroup" },
     { id: "s4", name: "Học bổng Erasmus+ 2026", value: "Toàn phần", deadline: "30/03/2026", progress: 80, icon: "🇪🇺", bgColor: "#E8EAF6", type: "international", provider: "EU Commission" },
+    { id: "s5", name: "Học bổng Posco TJ Park 2026", value: "1000 USD", deadline: "15/04/2026", progress: 0, icon: "💎", bgColor: "#E1F5FE", type: "corporate", provider: "Tập đoàn Posco" },
+    { id: "s6", name: "Học bổng Đồng hành - Chặng 48", value: "5.0 triệu", deadline: "25/05/2026", progress: 10, icon: "🤝", bgColor: "#FFF3E0", type: "support", provider: "Hội Đồng hành" },
+    { id: "s7", name: "Học bổng Honda Award 2026", value: "Máy tính & Tiền mặt", deadline: "10/06/2026", progress: 5, icon: "🏍️", bgColor: "#FFEBEE", type: "corporate", provider: "Honda Vietnam" },
+    { id: "s8", name: "Học bổng Hessen (Đức) 2026", value: "1000 EUR", deadline: "30/07/2026", progress: 2, icon: "🇩🇪", bgColor: "#EFEBE9", type: "international", provider: "WUS Germany" },
+    { id: "s9", name: "Học bổng Nghiên cứu Google AI 2026", value: "5000 USD", deadline: "15/08/2026", progress: 0, icon: "🤖", bgColor: "#E8F5E9", type: "talent", provider: "Google Research" },
+    { id: "s10", name: "Học bổng Tài năng Trẻ CMC 2026", value: "100% Học phí", deadline: "20/07/2026", progress: 0, icon: "🌟", bgColor: "#FFFDE7", type: "talent", provider: "CMC Global" },
   ];
   const [activeMainTab, setActiveMainTab] = useState<"events" | "scholarships">("events");
   const [filterIndex, setFilterIndex] = useState(0);
@@ -152,13 +166,12 @@ export default function Events({ savedItems, onToggleSave, events: propsEvents, 
   };
 
   const filteredEvents = allEvents.filter((e) => {
-    if (activeMainTab !== "events") return false;
     // Category filter
     let categoryMatch = true;
-    if (filterIndex === 1) categoryMatch = e.type === "academic";
-    else if (filterIndex === 2) categoryMatch = e.type === "volunteer";
-    else if (filterIndex === 3) categoryMatch = e.type === "sports";
-    else if (filterIndex === 4) categoryMatch = e.type === "club";
+    const eventTypes = ["all", "academic", "volunteer", "sports", "club", "social"];
+    if (filterIndex > 0) {
+      categoryMatch = e.type === eventTypes[filterIndex];
+    }
     
     if (!categoryMatch) return false;
 
@@ -189,19 +202,19 @@ export default function Events({ savedItems, onToggleSave, events: propsEvents, 
   });
 
   const filteredScholarships = allScholarships.filter((s) => {
-    if (activeMainTab !== "scholarships") return false;
     // Category filter
     let categoryMatch = true;
-    if (filterIndex === 1) categoryMatch = s.type === "academic";
-    else if (filterIndex === 2) categoryMatch = s.type === "corporate";
-    else if (filterIndex === 3) categoryMatch = s.type === "international";
+    const schTypes = ["all", "academic", "corporate", "international", "support", "talent"];
+    if (filterIndex > 0) {
+      categoryMatch = (s.type || "academic") === schTypes[filterIndex];
+    }
     
     if (!categoryMatch) return false;
 
     // Deadline check (optional)
     if (startDate || endDate) {
       // Handle non-date strings like "Hết hạn"
-      if (!s.deadline.includes("/")) return false;
+      if (!s.deadline || !s.deadline.includes("/")) return false;
       
       // Parse DD/MM/YYYY
       const parts = s.deadline.split("/");
@@ -270,14 +283,12 @@ export default function Events({ savedItems, onToggleSave, events: propsEvents, 
               >
                 <List className="w-4 h-4" />
               </button>
-              {activeMainTab === "events" && (
-                <button 
-                  onClick={() => setViewMode("calendar")}
-                  className={`p-1.5 rounded-lg transition-all ${viewMode === "calendar" ? "bg-white text-app-primary shadow-sm" : "text-white/60"}`}
-                >
-                  <Calendar className="w-4 h-4" />
-                </button>
-              )}
+              <button 
+                onClick={() => setViewMode("calendar")}
+                className={`p-1.5 rounded-lg transition-all ${viewMode === "calendar" ? "bg-white text-app-primary shadow-sm" : "text-white/60"}`}
+              >
+                <Calendar className="w-4 h-4" />
+              </button>
             </div>
           </div>
         </div>
@@ -453,7 +464,10 @@ export default function Events({ savedItems, onToggleSave, events: propsEvents, 
                 const day = i + 1;
                 const month = currentMonth.getMonth() + 1;
                 const dateString = `${day.toString().padStart(2, '0')}/${month.toString().padStart(2, '0')}`;
-                const dayEvents = allEvents.filter(e => e.date === dateString);
+                const dayEvents = filteredEvents.filter(e => e.date === dateString);
+                const dayScholarships = filteredScholarships.filter(s => s.deadline.startsWith(dateString));
+                const totalItems = dayEvents.length + dayScholarships.length;
+                
                 const isSelected = selectedDate?.getDate() === day && selectedDate?.getMonth() === currentMonth.getMonth();
                 const isToday = new Date().getDate() === day && new Date().getMonth() === currentMonth.getMonth() && new Date().getFullYear() === currentMonth.getFullYear();
 
@@ -463,25 +477,33 @@ export default function Events({ savedItems, onToggleSave, events: propsEvents, 
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                       onClick={() => setSelectedDate(new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day))}
-                      onMouseEnter={() => dayEvents.length > 0 && setHoveredDate(dateString)}
+                      onMouseEnter={() => totalItems > 0 && setHoveredDate(dateString)}
                       onMouseLeave={() => setHoveredDate(null)}
                       className={`aspect-square w-full rounded-xl flex flex-col items-center justify-center relative transition-all
-                        ${isSelected ? "bg-app-primary text-white shadow-lg shadow-app-primary/30 z-10" : isToday ? "bg-app-secondary text-app-primary" : "hover:bg-gray-50 text-[#0D1340]"}`}
+                        ${isSelected ? "bg-app-primary text-white shadow-lg shadow-app-primary/30 z-10" : 
+                          totalItems > 0 ? "bg-app-primary/5 text-app-primary border border-app-primary/10" : 
+                          isToday ? "bg-app-secondary text-app-primary" : "hover:bg-gray-50 text-[#0D1340]"}`}
                     >
                       <span className={`text-xs font-bold ${isToday && !isSelected ? "underline decoration-2 underline-offset-4" : ""}`}>{day}</span>
                       <div className="flex gap-0.5 mt-1">
-                        {dayEvents.slice(0, 3).map((e, idx) => (
+                        {dayEvents.slice(0, 2).map((e, idx) => (
                           <div 
-                            key={idx} 
+                            key={`ev-${idx}`} 
                             className={`w-1 h-1 rounded-full ${isSelected ? "bg-white" : ""}`} 
                             style={{ backgroundColor: isSelected ? undefined : e.color }} 
+                          />
+                        ))}
+                        {dayScholarships.slice(0, 2).map((_, idx) => (
+                          <div 
+                            key={`sch-${idx}`} 
+                            className={`w-1 h-1 rounded-full ${isSelected ? "bg-white" : "bg-purple-500"}`} 
                           />
                         ))}
                       </div>
                     </motion.button>
 
                     <AnimatePresence>
-                      {hoveredDate === dateString && dayEvents.length > 0 && (
+                      {hoveredDate === dateString && totalItems > 0 && (
                         <motion.div 
                           initial={{ opacity: 0, y: 10, scale: 0.95 }}
                           animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -490,9 +512,10 @@ export default function Events({ savedItems, onToggleSave, events: propsEvents, 
                         >
                           <div className="space-y-2.5">
                             <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-50 pb-1.5 mb-1.5 flex justify-between">
-                              <span>Sự kiện ({dayEvents.length})</span>
+                              <span>Mục tiêu ({totalItems})</span>
                               <span>{dateString}</span>
                             </p>
+                            
                             {dayEvents.map(e => (
                               <div key={e.id} className="flex gap-2 items-start">
                                 <span className="text-sm bg-gray-50 p-1 rounded-lg shrink-0">{e.icon}</span>
@@ -501,6 +524,24 @@ export default function Events({ savedItems, onToggleSave, events: propsEvents, 
                                   <div className="flex items-center gap-2 mt-0.5 text-[8px] text-gray-500 font-medium">
                                     <span>⏰ {e.time}</span>
                                     <span className="truncate">📍 {e.location}</span>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+
+                            {dayScholarships.map(s => (
+                              <div key={s.id} className="flex gap-2 items-start">
+                                <span className="text-sm bg-purple-50 p-1 rounded-lg shrink-0">{s.icon}</span>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-[10px] font-bold text-[#0D1340] truncate leading-tight">{s.name}</p>
+                                  <div className="flex items-center gap-2 mt-0.5 text-[8px] text-purple-500 font-medium font-bold">
+                                    <span>💰 {s.value}</span>
+                                    <span className="bg-purple-100 px-1 rounded truncate max-w-[80px]">
+                                      {(() => {
+                                        const idx = ["all", "academic", "corporate", "international", "support", "talent"].indexOf(s.type);
+                                        return idx !== -1 ? scholarshipFilters[idx] : s.type;
+                                      })()}
+                                    </span>
                                   </div>
                                 </div>
                               </div>
@@ -516,14 +557,15 @@ export default function Events({ savedItems, onToggleSave, events: propsEvents, 
             </div>
           </div>
 
-          {/* Events for selected day */}
+          {/* Items for selected day */}
           <div className="mt-8 space-y-4">
             <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest pl-2">
-              {selectedDate ? `${selectedDate.getDate()}/${selectedDate.getMonth() + 1}` : "Chọn ngày để xem sự kiện"}
+              {selectedDate ? `${selectedDate.getDate().toString().padStart(2, '0')}/${(selectedDate.getMonth() + 1).toString().padStart(2, '0')}/${selectedDate.getFullYear()}` : "Chọn ngày để xem chi tiết"}
             </h3>
             {selectedDate ? (
               <div className="space-y-3">
-                {allEvents
+                {/* Events */}
+                {filteredEvents
                   .filter(e => {
                     const dateStr = `${selectedDate.getDate().toString().padStart(2, '0')}/${(selectedDate.getMonth() + 1).toString().padStart(2, '0')}`;
                     return e.date === dateStr;
@@ -539,11 +581,26 @@ export default function Events({ savedItems, onToggleSave, events: propsEvents, 
                         {e.icon}
                       </div>
                       <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-[9px] font-bold text-app-primary bg-app-secondary px-2 py-0.5 rounded-full uppercase tracking-wider">Sự kiện</span>
+                          <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${getEventTagColor(e.type)}`}>
+                            {(() => {
+                              const idx = ["all", "academic", "volunteer", "sports", "club", "social"].indexOf(e.type);
+                              return idx !== -1 ? eventFilters[idx] : e.type;
+                            })()}
+                          </span>
+                        </div>
                         <h4 className="text-sm font-bold text-[#0D1340] leading-tight">{e.title}</h4>
                         <div className="flex items-center gap-3 mt-2 text-[11px] text-gray-500 font-medium">
                           <span>⏰ {e.time}</span>
                           <span>📍 {e.location}</span>
                         </div>
+                        <button 
+                          onClick={() => onGoToAttendance && onGoToAttendance(e.id)}
+                          className="mt-3 text-[10px] font-bold bg-app-primary text-white px-3 py-1.5 rounded-lg shadow-sm w-fit"
+                        >
+                          {t('events.register')}
+                        </button>
                       </div>
                       <button 
                         onClick={(e_stop) => {
@@ -556,12 +613,64 @@ export default function Events({ savedItems, onToggleSave, events: propsEvents, 
                       </button>
                     </motion.div>
                   ))}
-                {allEvents.filter(e => {
+
+                {/* Scholarships */}
+                {filteredScholarships
+                  .filter(s => {
+                    const dateStr = `${selectedDate.getDate().toString().padStart(2, '0')}/${(selectedDate.getMonth() + 1).toString().padStart(2, '0')}`;
+                    return s.deadline.startsWith(dateStr);
+                  })
+                  .map(s => (
+                    <motion.div
+                      key={s.id}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      className="bg-white rounded-2xl border border-[#E3E5F8] p-4 flex gap-4 shadow-sm"
+                    >
+                      <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl shrink-0 bg-purple-50">
+                        {s.icon}
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-[9px] font-bold text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full uppercase tracking-wider">Học bổng</span>
+                          <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${getSchTagColor(s.type)}`}>
+                            {(() => {
+                              const idx = ["all", "academic", "corporate", "international", "support", "talent"].indexOf(s.type);
+                              return idx !== -1 ? scholarshipFilters[idx] : s.type;
+                            })()}
+                          </span>
+                        </div>
+                        <h4 className="text-sm font-bold text-[#0D1340] leading-tight">{s.name}</h4>
+                        <div className="flex items-center gap-3 mt-2 text-[11px] text-purple-500 font-medium">
+                          <span>💰 {s.value}</span>
+                          <span className="font-bold">📅 {s.deadline}</span>
+                        </div>
+                        <button className="mt-3 text-[10px] font-bold bg-purple-600 text-white px-3 py-1.5 rounded-lg shadow-sm w-fit">
+                          {t('events.apply')}
+                        </button>
+                      </div>
+                      <button 
+                        onClick={(e_stop) => {
+                          e_stop.stopPropagation();
+                          onToggleSave({ itemId: s.id, type: "scholarship", title: s.name, icon: s.icon });
+                        }}
+                        className={`p-1.5 rounded-lg h-fit transition-colors ${isSaved(s.id, "scholarship") ? "bg-app-secondary text-app-primary" : "hover:bg-gray-100 text-gray-300"}`}
+                      >
+                        <Bookmark className={`w-4 h-4 ${isSaved(s.id, "scholarship") ? "fill-app-primary" : ""}`} />
+                      </button>
+                    </motion.div>
+                  ))}
+
+                {filteredEvents.filter(e => {
                   const dateStr = `${selectedDate.getDate().toString().padStart(2, '0')}/${(selectedDate.getMonth() + 1).toString().padStart(2, '0')}`;
                   return e.date === dateStr;
+                }).length === 0 && 
+                filteredScholarships.filter(s => {
+                  const dateStr = `${selectedDate.getDate().toString().padStart(2, '0')}/${(selectedDate.getMonth() + 1).toString().padStart(2, '0')}`;
+                  return s.deadline.startsWith(dateStr);
                 }).length === 0 && (
                   <div className="py-10 text-center bg-white/40 rounded-3xl border border-dashed border-gray-200">
-                    <p className="text-xs text-gray-400 font-medium">Không có sự kiện nào vào ngày này</p>
+                    <p className="text-xs text-gray-400 font-medium">Không có sự kiện hoặc học bổng nào vào ngày này</p>
                   </div>
                 )}
               </div>
@@ -642,18 +751,32 @@ export default function Events({ savedItems, onToggleSave, events: propsEvents, 
                           {isEvent ? (
                             <>
                               <span className="text-[10px] font-bold text-app-primary bg-app-secondary px-2 py-1 rounded-lg">+{e.points}đ điểm RL</span>
-                              <span className="text-[10px] font-bold text-gray-500 bg-gray-50 px-2 py-1 rounded-lg capitalize">{e.type}</span>
+                              <span className={`text-[10px] font-bold px-2 py-1 rounded-lg ${getEventTagColor(e.type)}`}>
+                                {(() => {
+                                  const idx = ["all", "academic", "volunteer", "sports", "club", "social"].indexOf(e.type);
+                                  return idx !== -1 ? eventFilters[idx] : e.type;
+                                })()}
+                              </span>
                             </>
                           ) : (
                             <>
                               <span className="text-[10px] font-bold text-app-primary bg-app-secondary px-2 py-1 rounded-lg">{s.value}</span>
-                              <div className="w-20 h-1.5 bg-gray-100 rounded-full overflow-hidden self-center">
+                              <span className={`text-[10px] font-bold px-2 py-1 rounded-lg ${getSchTagColor(s.type)}`}>
+                                {(() => {
+                                  const idx = ["all", "academic", "corporate", "international", "support", "talent"].indexOf(s.type);
+                                  return idx !== -1 ? scholarshipFilters[idx] : s.type;
+                                })()}
+                              </span>
+                              <div className="w-16 h-1.5 bg-gray-100 rounded-full overflow-hidden self-center">
                                 <div className="h-full bg-app-primary" style={{ width: `${s.progress}%` }} />
                               </div>
                             </>
                           )}
                         </div>
-                        <button className="text-xs font-bold bg-app-primary text-white px-4 py-1.5 rounded-xl shadow-sm">
+                        <button 
+                          onClick={() => isEvent && onGoToAttendance && onGoToAttendance(item.id)}
+                          className="text-xs font-bold bg-app-primary text-white px-4 py-1.5 rounded-xl shadow-sm"
+                        >
                           {isEvent ? t('events.register') : t('events.apply')}
                         </button>
                       </div>
