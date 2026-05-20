@@ -1,13 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { LogOut, FileText, ChevronRight, Award, X, ZoomIn, ZoomOut, Download, ChevronDown, Globe } from "lucide-react";
+import { LogOut, FileText, ChevronRight, Award, X, ZoomIn, ZoomOut, Download, ChevronDown, Globe, Shield, KeyRound, Trash2, CheckCircle2, AlertTriangle, Palette, Eye, EyeOff, Lock, AlertCircle } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { useI18n } from "../lib/i18n";
 import { auth as firebaseAuth, db } from "../lib/firebase";
 import { useAuth, OperationType, handleFirestoreError } from "../lib/auth";
-import { signOut } from "firebase/auth";
-import { doc, getDoc, setDoc, serverTimestamp, updateDoc } from "firebase/firestore";
+import { signOut, sendPasswordResetEmail, deleteUser, sendEmailVerification, updatePassword, reauthenticateWithCredential, EmailAuthProvider } from "firebase/auth";
+import { doc, getDoc, setDoc, serverTimestamp, updateDoc, deleteDoc } from "firebase/firestore";
 import { applyTheme, AppTheme, DEFAULT_THEME, getSecondaryFromPrimary } from "../lib/theme";
-import { Palette } from "lucide-react";
 import { generateAttendancePDF } from "../lib/pdfGenerator";
 import { CheckInRecord } from "../types";
 
@@ -54,6 +53,243 @@ export default function Profile({ initialData, history, onUpdate }: ProfileProps
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [touchDistance, setTouchDistance] = useState<number | null>(null);
   const [initialTouchZoom, setInitialTouchZoom] = useState<number>(1);
+
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [deleteInput, setDeleteInput] = useState("");
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // Password Management States
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+  const [currentPwd, setCurrentPwd] = useState("");
+  const [newPwd, setNewPwd] = useState("");
+  const [confirmPwd, setConfirmPwd] = useState("");
+  const [showCurrentPwd, setShowCurrentPwd] = useState(false);
+  const [showNewPwd, setShowNewPwd] = useState(false);
+  const [showConfirmPwd, setShowConfirmPwd] = useState(false);
+  const [pwdLoading, setPwdLoading] = useState(false);
+  const [pwdSuccess, setPwdSuccess] = useState<string | null>(null);
+  const [pwdError, setPwdError] = useState<string | null>(null);
+
+  const textMap = {
+    vi: {
+      accountManagement: "Quản lý Tài khoản",
+      accountSub: "Bảo mật & Thiết lập tài khoản sinh viên",
+      userEmail: "Địa chỉ Email",
+      userId: "Mã định danh UID",
+      emailUnverified: "Chưa xác minh",
+      emailVerified: "Đã xác minh",
+      sendVerification: "Gửi link xác minh",
+      verificationSent: "Đã gửi email xác minh!",
+      resetPassword: "Đổi mật khẩu",
+      resetPasswordSub: "Nhận liên kết đổi mật khẩu qua email",
+      resetPasswordBtn: "Gửi Email đặt lại mật khẩu",
+      resetPasswordSent: "Yêu cầu đặt lại mật khẩu thành công! Hãy kiểm tra hòm thư của bạn.",
+      deleteAccount: "Xóa vĩnh viễn tài khoản",
+      deleteAccountSub: "Hành động này không thể hoàn tác!",
+      deleteAccountBtn: "Xóa tài khoản",
+      deleteModalTitle: "Xác nhận xóa tài khoản",
+      deleteModalSub: "Nhập chữ 'XOA' vào ô trống bên dưới để xác nhận xóa vĩnh viễn tài khoản và toàn bộ dữ liệu minh chứng của bạn.",
+      deletePlaceholder: "Nhập 'XOA' để tiếp tục",
+      deleteConfirm: "Xác nhận xóa",
+      deleteErrorRecent: "Vì lý do bảo mật, bạn cần đăng xuất và đăng ký/đăng nhập lại mới có thể xóa tài khoản.",
+      
+      // Password management translations
+      managePassword: "Quản lý mật khẩu",
+      passwordTitle: "Quản lý Mật khẩu",
+      passwordSub: "Cập nhật mật khẩu tài khoản sinh viên",
+      googleUserDisclaimer: "Tài khoản của bạn hiện đang liên kết và đăng nhập bằng Google SSO. Mật khẩu được bảo mật hoàn toàn bởi Google.",
+      currentPassword: "Mật khẩu hiện tại",
+      newPassword: "Mật khẩu mới",
+      confirmNewPassword: "Xác nhận mật khẩu mới",
+      passwordStrength: "Độ mạnh mật khẩu",
+      passwordMismatch: "Mật khẩu xác nhận không khớp.",
+      passwordSuccess: "Đổi mật khẩu thành công!",
+      passwordMinLength: "Mật khẩu mới phải có tối thiểu 6 ký tự.",
+      passwordTooShort: "Quá ngắn",
+      passwordWeak: "Còn yếu",
+      passwordMedium: "Trung bình",
+      passwordStrong: "Mạnh",
+      updatePasswordBtn: "Cập nhật mật khẩu",
+      orSendResetEmail: "Sử dụng email đặt lại mật khẩu",
+      currentPasswordPlaceholder: "Nhập mật khẩu hiện tại của bạn",
+      newPasswordPlaceholder: "Nhập mật khẩu mới (tối thiểu 6 ký tự)",
+      confirmPasswordPlaceholder: "Nhập lại mật khẩu mới",
+      securitySettings: "Thiết lập bảo mật"
+    },
+    en: {
+      accountManagement: "Account Settings",
+      accountSub: "Security & student account settings",
+      userEmail: "Email Address",
+      userId: "User ID (UID)",
+      emailUnverified: "Unverified",
+      emailVerified: "Verified",
+      sendVerification: "Send verification link",
+      verificationSent: "Verification email sent!",
+      resetPassword: "Change Password",
+      resetPasswordSub: "Get a password reset link via email",
+      resetPasswordBtn: "Send Password Reset Email",
+      resetPasswordSent: "Password reset link sent! Please check your inbox.",
+      deleteAccount: "Permanently Delete Account",
+      deleteAccountSub: "This action cannot be undone!",
+      deleteAccountBtn: "Delete Account",
+      deleteModalTitle: "Confirm Account Deletion",
+      deleteModalSub: "Please type 'DELETE' in the input field below to confirm permanently deleting your account and all records.",
+      deletePlaceholder: "Type 'DELETE' to confirm",
+      deleteConfirm: "Confirm Delete",
+      deleteErrorRecent: "For security reasons, you must log out and sign back in to delete your account.",
+
+      // Password management translations
+      managePassword: "Manage Password",
+      passwordTitle: "Password Settings",
+      passwordSub: "Update your student account password",
+      googleUserDisclaimer: "Your account is linked with Google SSO. Passwords are securely managed directly via Google settings.",
+      currentPassword: "Current Password",
+      newPassword: "New Password",
+      confirmNewPassword: "Confirm New Password",
+      passwordStrength: "Password strength",
+      passwordMismatch: "Confirm password does not match.",
+      passwordSuccess: "Password updated successfully!",
+      passwordMinLength: "New password must be at least 6 characters.",
+      passwordTooShort: "Too short",
+      passwordWeak: "Weak",
+      passwordMedium: "Medium",
+      passwordStrong: "Strong",
+      updatePasswordBtn: "Update Password",
+      orSendResetEmail: "Send password reset email",
+      currentPasswordPlaceholder: "Enter your current password",
+      newPasswordPlaceholder: "Enter brand new password (min 6 chars)",
+      confirmPasswordPlaceholder: "Retype new password",
+      securitySettings: "Security Settings"
+    }
+  };
+
+  const currentTexts = lang === "vi" ? textMap.vi : textMap.en;
+
+  const resetPwdFields = () => {
+    setCurrentPwd("");
+    setNewPwd("");
+    setConfirmPwd("");
+    setShowCurrentPwd(false);
+    setShowNewPwd(false);
+    setShowConfirmPwd(false);
+    setPwdSuccess(null);
+    setPwdError(null);
+  };
+
+  const getPasswordStrength = (pwd: string) => {
+    if (!pwd) return { score: 0, label: "", color: "bg-gray-200" };
+    if (pwd.length < 6) return { score: 1, label: currentTexts.passwordTooShort, color: "bg-red-500", width: "w-1/4" };
+    
+    let strength = 0;
+    if (pwd.length >= 8) strength++;
+    if (/[0-9]/.test(pwd)) strength++;
+    if (/[A-Z]/.test(pwd)) strength++;
+    if (/[^A-Za-z0-9]/.test(pwd)) strength++;
+    
+    if (strength <= 1) return { score: 2, label: currentTexts.passwordWeak, color: "bg-orange-500", width: "w-2/4" };
+    if (strength === 2 || strength === 3) return { score: 3, label: currentTexts.passwordMedium, color: "bg-yellow-500", width: "w-3/4" };
+    return { score: 4, label: currentTexts.passwordStrong, color: "bg-green-500", width: "w-full" };
+  };
+
+  const handleDirectPasswordUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+    setPwdSuccess(null);
+    setPwdError(null);
+
+    if (!currentPwd || !newPwd || !confirmPwd) {
+      setPwdError(lang === "vi" ? "Vui lòng điền đầy đủ tất cả các trường." : "Please fill in all fields.");
+      return;
+    }
+
+    if (newPwd.length < 6) {
+      setPwdError(currentTexts.passwordMinLength);
+      return;
+    }
+
+    if (newPwd !== confirmPwd) {
+      setPwdError(currentTexts.passwordMismatch);
+      return;
+    }
+
+    setPwdLoading(true);
+    try {
+      if (user.email) {
+        const credential = EmailAuthProvider.credential(user.email, currentPwd);
+        await reauthenticateWithCredential(user, credential);
+        await updatePassword(user, newPwd);
+        setPwdSuccess(currentTexts.passwordSuccess);
+        
+        // Reset inputs on success except keeping the success message
+        setCurrentPwd("");
+        setNewPwd("");
+        setConfirmPwd("");
+      } else {
+        setPwdError(lang === "vi" ? "Email không khả dụng." : "Email not available.");
+      }
+    } catch (err: any) {
+      console.error("Password direct update error:", err);
+      if (err.code === "auth/invalid-credential" || err.code === "auth/wrong-password") {
+        setPwdError(lang === "vi" ? "Mật khẩu hiện tại không chính xác." : "Current password is incorrect.");
+      } else if (err.code === "auth/requires-recent-login") {
+        setPwdError(currentTexts.deleteErrorRecent);
+      } else {
+        setPwdError(err.message || (lang === "vi" ? "Không thể cập nhật mật khẩu." : "Could not update password."));
+      }
+    } finally {
+      setPwdLoading(false);
+    }
+  };
+
+  const handleResetPassword = async () => {
+    if (!user || !user.email) return;
+    setSuccessMessage(null);
+    setErrorMessage(null);
+    try {
+      await sendPasswordResetEmail(firebaseAuth, user.email);
+      setSuccessMessage(currentTexts.resetPasswordSent);
+    } catch (err: any) {
+      setErrorMessage(err.message || "Không thể gửi email đặt lại mật khẩu.");
+    }
+  };
+
+  const handleSendVerification = async () => {
+    if (!user) return;
+    setSuccessMessage(null);
+    setErrorMessage(null);
+    try {
+      await sendEmailVerification(user);
+      setSuccessMessage(currentTexts.verificationSent);
+    } catch (err: any) {
+      setErrorMessage(err.message || "Không thể gửi email xác minh.");
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!user) return;
+    setSuccessMessage(null);
+    setErrorMessage(null);
+    
+    const expectedWord = lang === "vi" ? "XOA" : "DELETE";
+    if (deleteInput.trim().toUpperCase() !== expectedWord) {
+      setErrorMessage(lang === "vi" ? "Từ khóa xác nhận không khớp." : "Confirmation keyword does not match.");
+      return;
+    }
+
+    try {
+      await deleteDoc(doc(db, "users", user.uid));
+      await deleteUser(user);
+      setIsDeleteModalOpen(false);
+    } catch (err: any) {
+      console.error("Account Deletion Error:", err);
+      if (err.code === "auth/requires-recent-login") {
+        setErrorMessage(currentTexts.deleteErrorRecent);
+      } else {
+        setErrorMessage(err.message || "Lỗi khi xóa tài khoản.");
+      }
+    }
+  };
 
   useEffect(() => {
     setUserData(initialData);
@@ -317,7 +553,7 @@ export default function Profile({ initialData, history, onUpdate }: ProfileProps
               </h3>
               <Award className="w-4 h-4 text-[#F0A030]" />
             </div>
-            <p className="text-[11px] text-gray-500 font-medium">Học kỳ 2 · 2024–2025</p>
+            <p className="text-[11px] text-gray-500 font-medium">Học kỳ 2 · 2025–2026</p>
             
             <div className="flex gap-4 mt-4">
               <div className="text-center">
@@ -457,6 +693,114 @@ export default function Profile({ initialData, history, onUpdate }: ProfileProps
           </div>
         </div>
         
+        {/* Account Management Section */}
+        <div className="bg-white border border-[#E3E5F8] p-5 rounded-3xl space-y-4">
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10 rounded-xl bg-app-secondary flex items-center justify-center text-app-primary">
+              <Shield className="w-5 h-5" />
+            </div>
+            <div className="text-left flex-1">
+              <h4 className="text-sm font-bold">{currentTexts.accountManagement}</h4>
+              <p className="text-[10px] text-gray-500 font-medium">{currentTexts.accountSub}</p>
+            </div>
+          </div>
+
+          <div className="divide-y divide-gray-100 text-left pt-2 space-y-3.5">
+            {/* User details */}
+            <div className="pt-2 space-y-1">
+              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{currentTexts.userEmail}</span>
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-gray-800 break-all">{user?.email || "N/A"}</span>
+                {user?.emailVerified ? (
+                  <span className="shrink-0 flex items-center gap-1 text-[9px] bg-green-50 text-green-600 px-2 py-0.5 rounded-full font-bold">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-green-500" /> {currentTexts.emailVerified}
+                  </span>
+                ) : (
+                  <div className="shrink-0 flex items-center gap-1.5 font-sans">
+                    <span className="text-[9px] bg-amber-50 text-amber-600 px-2 py-0.5 rounded-full font-bold">
+                      {currentTexts.emailUnverified}
+                    </span>
+                    <button
+                      onClick={handleSendVerification}
+                      className="text-[9px] text-app-primary hover:underline font-bold"
+                    >
+                      {currentTexts.sendVerification}
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Change Password option */}
+            <div className="pt-3.5 flex items-center justify-between gap-4">
+              <div className="flex-1">
+                <h5 className="text-xs font-bold text-gray-800 flex items-center gap-1.5">
+                  <KeyRound className="w-3.5 h-3.5 text-gray-400" />
+                  {currentTexts.managePassword}
+                </h5>
+                <p className="text-[9px] text-gray-400 font-medium mt-0.5">{currentTexts.passwordSub}</p>
+              </div>
+              <motion.button
+                whileTap={{ scale: 0.95 }}
+                onClick={() => {
+                  resetPwdFields();
+                  setIsPasswordModalOpen(true);
+                }}
+                className="px-3 py-1.5 bg-app-secondary hover:bg-opacity-95 text-app-primary text-[10px] font-bold rounded-xl shadow-sm transition-all shrink-0"
+              >
+                {lang === 'vi' ? 'Thiết lập' : 'Configure'}
+              </motion.button>
+            </div>
+
+            {/* Permanent Account Deletion Option */}
+            <div className="pt-3.5 flex items-center justify-between gap-4">
+              <div className="flex-1">
+                <h5 className="text-xs font-bold text-red-600 flex items-center gap-1.5">
+                  <Trash2 className="w-3.5 h-3.5 text-red-500" />
+                  {currentTexts.deleteAccount}
+                </h5>
+                <p className="text-[9px] text-red-400 font-medium mt-0.5">{currentTexts.deleteAccountSub}</p>
+              </div>
+              <motion.button
+                whileTap={{ scale: 0.95 }}
+                onClick={() => {
+                  setDeleteInput("");
+                  setIsDeleteModalOpen(true);
+                }}
+                className="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 text-[10px] font-bold rounded-xl transition-all shrink-0"
+              >
+                {currentTexts.deleteAccountBtn}
+              </motion.button>
+            </div>
+          </div>
+
+          {/* Inline Action feedback */}
+          <AnimatePresence>
+            {successMessage && (
+              <motion.div
+                initial={{ opacity: 0, y: -5 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -5 }}
+                className="p-3 bg-green-50 border border-green-100 text-green-700 text-[10px] rounded-xl font-bold text-center relative"
+              >
+                <button onClick={() => setSuccessMessage(null)} className="absolute top-1 right-2 text-green-400 hover:text-green-600 text-xs">×</button>
+                {successMessage}
+              </motion.div>
+            )}
+            {errorMessage && (
+              <motion.div
+                initial={{ opacity: 0, y: -5 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -5 }}
+                className="p-3 bg-red-50 border border-red-100 text-red-700 text-[10px] rounded-xl font-bold text-center relative"
+              >
+                <button onClick={() => setErrorMessage(null)} className="absolute top-1 right-2 text-red-400 hover:text-red-600 text-xs">×</button>
+                {errorMessage}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+        
         <motion.button 
           whileTap={{ scale: 0.98 }}
           onClick={handleLogout}
@@ -467,7 +811,7 @@ export default function Profile({ initialData, history, onUpdate }: ProfileProps
       </div>
 
       <p className="text-center text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-10">
-        CampusHub v1.0 · ĐHQGHN 2025
+        CampusHub v1.0 · ĐHQGHN 2026
       </p>
 
       {/* PDF Preview Modal */}
@@ -491,7 +835,7 @@ export default function Profile({ initialData, history, onUpdate }: ProfileProps
               <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-white z-10">
                 <div>
                   <h3 className="text-sm font-bold text-app-text">{t('profile.pdfPreview')}</h3>
-                  <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">minh_chung_2025.pdf</p>
+                  <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">minh_chung_2026.pdf</p>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="flex items-center bg-gray-50 rounded-xl p-1 mr-2 border border-gray-100">
@@ -567,6 +911,252 @@ export default function Profile({ initialData, history, onUpdate }: ProfileProps
                 <span>{t('common.page')} 1 / 1</span>
                 <span>{t('profile.pdfSecure')}</span>
               </div>
+            </motion.div>
+          </div>
+        )}
+
+        {isDeleteModalOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsDeleteModalOpen(false)}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            />
+            
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className="relative w-full max-w-sm bg-white rounded-[32px] overflow-hidden p-6 flex flex-col shadow-2xl space-y-4"
+            >
+              <div className="flex items-center gap-3 text-red-600">
+                <div className="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center">
+                  <AlertTriangle className="w-5 h-5 text-red-500" />
+                </div>
+                <div className="text-left">
+                  <h3 className="text-sm font-bold text-gray-900">{currentTexts.deleteModalTitle}</h3>
+                  <p className="text-[10px] text-red-500 font-bold uppercase tracking-wider">{currentTexts.deleteAccountSub}</p>
+                </div>
+              </div>
+
+              <p className="text-xs text-gray-500 font-medium leading-relaxed text-left">
+                {currentTexts.deleteModalSub}
+              </p>
+
+              <input
+                type="text"
+                value={deleteInput}
+                onChange={(e) => setDeleteInput(e.target.value)}
+                placeholder={currentTexts.deletePlaceholder}
+                className="w-full bg-gray-50 border border-gray-100 rounded-2xl px-4 py-3 text-sm text-center font-bold uppercase outline-none focus:bg-white focus:border-red-400 focus:ring-1 focus:ring-red-400 transition-all placeholder:text-gray-300 placeholder:normal-case font-mono"
+              />
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={() => setIsDeleteModalOpen(false)}
+                  className="flex-1 py-3 bg-gray-50 hover:bg-gray-100 text-gray-500 text-xs font-bold rounded-xl border border-gray-100 transition-colors"
+                >
+                  {t('common.cancel')}
+                </button>
+                <button
+                  onClick={handleDeleteAccount}
+                  className="flex-1 py-3 bg-red-600 text-white text-xs font-bold rounded-xl shadow-lg shadow-red-600/20 hover:bg-red-700 transition-colors"
+                >
+                  {currentTexts.deleteConfirm}
+                </button>
+              </div>
+
+              {errorMessage && (
+                <div className="p-3 bg-red-50 border border-red-100 text-red-700 text-[10px] rounded-xl font-bold text-center">
+                  {errorMessage}
+                </div>
+              )}
+            </motion.div>
+          </div>
+        )}
+
+        {isPasswordModalOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsPasswordModalOpen(false)}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            />
+            
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className="relative w-full max-w-sm bg-white rounded-[32px] overflow-hidden p-6 flex flex-col shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto no-scrollbar"
+            >
+              {/* Modal Header */}
+              <div className="flex items-center justify-between pb-2 border-b border-gray-100">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-app-secondary flex items-center justify-center text-app-primary">
+                    <Lock className="w-4.5 h-4.5" />
+                  </div>
+                  <div className="text-left">
+                    <h3 className="text-sm font-bold text-gray-900">{currentTexts.passwordTitle}</h3>
+                    <p className="text-[9px] text-gray-500 font-medium">{currentTexts.passwordSub}</p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setIsPasswordModalOpen(false)}
+                  className="p-1.5 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-50 transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Check if authenticated via Google provider */}
+              {user?.providerData.some((provider) => provider.providerId === "google.com") ? (
+                <div className="space-y-4 py-3 text-center">
+                  <div className="w-14 h-14 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center mx-auto">
+                    <Shield className="w-7 h-7" />
+                  </div>
+                  <div className="p-4 bg-gray-50 border border-gray-100 rounded-2xl text-left">
+                    <p className="text-xs text-gray-600 font-medium leading-relaxed">
+                      {currentTexts.googleUserDisclaimer}
+                    </p>
+                    <div className="mt-3 flex items-center gap-2 text-[10px] text-blue-600 font-bold bg-blue-50/50 p-2 rounded-xl">
+                      <Globe className="w-4 h-4 shrink-0" />
+                      <span>Google SSO Authorized Account</span>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => setIsPasswordModalOpen(false)}
+                    className="w-full py-3 bg-app-primary text-white text-xs font-bold rounded-xl shadow-lg shadow-app-primary/20 hover:scale-[1.02] transition-transform"
+                  >
+                    OK
+                  </button>
+                </div>
+              ) : (
+                <form onSubmit={handleDirectPasswordUpdate} className="space-y-4 text-left">
+                  {/* Current Password Field */}
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{currentTexts.currentPassword}</label>
+                    <div className="relative">
+                      <input
+                        type={showCurrentPwd ? "text" : "password"}
+                        value={currentPwd}
+                        onChange={(e) => setCurrentPwd(e.target.value)}
+                        placeholder={currentTexts.currentPasswordPlaceholder}
+                        className="w-full bg-gray-50 border border-gray-100 rounded-2xl pl-4 pr-10 py-3 text-xs font-semibold outline-none focus:bg-white focus:border-app-primary transition-all text-gray-700"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowCurrentPwd(!showCurrentPwd)}
+                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                      >
+                        {showCurrentPwd ? <EyeOff size={14} /> : <Eye size={14} />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* New Password Field */}
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{currentTexts.newPassword}</label>
+                    <div className="relative">
+                      <input
+                        type={showNewPwd ? "text" : "password"}
+                        value={newPwd}
+                        onChange={(e) => setNewPwd(e.target.value)}
+                        placeholder={currentTexts.newPasswordPlaceholder}
+                        className="w-full bg-gray-50 border border-gray-100 rounded-2xl pl-4 pr-10 py-3 text-xs font-semibold outline-none focus:bg-white focus:border-app-primary transition-all text-gray-700"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowNewPwd(!showNewPwd)}
+                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                      >
+                        {showNewPwd ? <EyeOff size={14} /> : <Eye size={14} />}
+                      </button>
+                    </div>
+
+                    {/* Password Strength Indicator */}
+                    {newPwd && (
+                      <div className="space-y-1 pt-1.5">
+                        <div className="flex justify-between items-center text-[9px] font-bold">
+                          <span className="text-gray-400">{currentTexts.passwordStrength}:</span>
+                          <span className="text-gray-600 uppercase font-bold">{getPasswordStrength(newPwd).label}</span>
+                        </div>
+                        <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
+                          <div 
+                            className={`h-full rounded-full transition-all duration-300 ${getPasswordStrength(newPwd).color} ${getPasswordStrength(newPwd).width}`}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Confirm New Password Field */}
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{currentTexts.confirmNewPassword}</label>
+                    <div className="relative">
+                      <input
+                        type={showConfirmPwd ? "text" : "password"}
+                        value={confirmPwd}
+                        onChange={(e) => setConfirmPwd(e.target.value)}
+                        placeholder={currentTexts.confirmPasswordPlaceholder}
+                        className="w-full bg-gray-50 border border-gray-100 rounded-2xl pl-4 pr-10 py-3 text-xs font-semibold outline-none focus:bg-white focus:border-app-primary transition-all text-gray-700"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirmPwd(!showConfirmPwd)}
+                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                      >
+                        {showConfirmPwd ? <EyeOff size={14} /> : <Eye size={14} />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Feedback Messages */}
+                  {pwdSuccess && (
+                    <div className="p-3 bg-green-50 border border-green-100 text-green-700 text-[10px] rounded-xl font-bold flex items-center gap-1.5">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-green-500 shrink-0" />
+                      <span>{pwdSuccess}</span>
+                    </div>
+                  )}
+
+                  {pwdError && (
+                    <div className="p-3 bg-red-50 border border-red-100 text-red-700 text-[10px] rounded-xl font-bold flex items-center gap-1.5">
+                      <AlertCircle className="w-3.5 h-3.5 text-red-500 shrink-0" />
+                      <span>{pwdError}</span>
+                    </div>
+                  )}
+
+                  {/* Submit Button */}
+                  <button
+                    type="submit"
+                    disabled={pwdLoading}
+                    className="w-full py-3 bg-app-primary text-white text-xs font-bold rounded-xl shadow-lg shadow-app-primary/20 hover:scale-[1.01] transition-transform flex items-center justify-center gap-2 hover:opacity-95 disabled:opacity-50"
+                  >
+                    {pwdLoading ? (
+                      <div className="w-4 h-4 border-2 border-white/35 border-t-white rounded-full animate-spin" />
+                    ) : (
+                      currentTexts.updatePasswordBtn
+                    )}
+                  </button>
+
+                  {/* Alternative Password Reset Link Options */}
+                  <div className="pt-2 text-center">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        handleResetPassword();
+                        setIsPasswordModalOpen(false);
+                      }}
+                      className="text-[10px] text-gray-400 hover:text-app-primary underline font-semibold transition-colors"
+                    >
+                      {currentTexts.orSendResetEmail}
+                    </button>
+                  </div>
+                </form>
+              )}
             </motion.div>
           </div>
         )}
