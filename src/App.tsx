@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Home as HomeIcon, Calendar, QrCode, User, Sparkles, X, Bookmark, Bell, BarChart3 } from "lucide-react";
+import { Home as HomeIcon, Calendar, QrCode, User, Sparkles, X, Bookmark, Bell, BarChart3, Share2, Copy, Check } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import Home from "./pages/Home";
 import Events from "./pages/Events";
@@ -163,6 +163,8 @@ function AppContent() {
     theme: DEFAULT_THEME
   });
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [isSharingAppOpen, setIsSharingAppOpen] = useState(false);
+  const [appShareCopied, setAppShareCopied] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
   const [recommendations, setRecommendations] = useState<AIRecommendation[]>([]);
   const [notifications, setNotifications] = useState<AppNotification[]>(() => {
@@ -424,8 +426,19 @@ function AppContent() {
 
   return (
     <div className="max-w-md mx-auto h-screen bg-app-bg relative overflow-hidden flex flex-col font-sans">
-      {/* Global Notifications Toggle */}
-      <div className="absolute top-14 right-6 z-[45]">
+      {/* Global Head Action Buttons */}
+      <div className="absolute top-14 right-6 z-[45] flex gap-2">
+        {/* Share App Button */}
+        <motion.button
+          whileTap={{ scale: 0.9 }}
+          onClick={() => setIsSharingAppOpen(true)}
+          className="w-10 h-10 bg-white/20 backdrop-blur-md border border-white/30 rounded-2xl flex items-center justify-center text-white relative shadow-lg"
+          title="Chia sẻ ứng dụng"
+        >
+          <Share2 size={18} />
+        </motion.button>
+
+        {/* Global Notifications Toggle */}
         <motion.button
           whileTap={{ scale: 0.9 }}
           onClick={() => setIsNotificationsOpen(true)}
@@ -654,6 +667,94 @@ function AppContent() {
               <X size={14} />
             </button>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* QR & URL App Sharing Modal */}
+      <AnimatePresence>
+        {isSharingAppOpen && (
+          <div className="absolute inset-0 z-[999] flex items-center justify-center p-6 bg-[#00000033] backdrop-blur-sm">
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-[32px] p-6 shadow-2xl border border-[#E3E5F8] max-w-sm w-full relative"
+            >
+              <button 
+                onClick={() => {
+                  setIsSharingAppOpen(false);
+                  setAppShareCopied(false);
+                }}
+                className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-50 transition-colors"
+                title="Đóng"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              <div className="flex flex-col items-center text-center mt-2">
+                <div className="w-14 h-14 bg-app-secondary rounded-2xl flex items-center justify-center text-3xl shadow-sm mb-3">
+                  🎓
+                </div>
+                <h4 className="text-xs font-bold text-app-primary uppercase tracking-wider mb-1">
+                  Chia sẻ ứng dụng
+                </h4>
+                <p className="text-base font-bold text-[#0D1340] px-2 mb-1">
+                  VNU Student Hub
+                </p>
+                <p className="text-[11px] text-gray-500 max-w-[240px] leading-relaxed mb-4">
+                  Ứng dụng hỗ trợ theo dối điểm rèn luyện, đăng ký sự kiện và tìm kiếm học bổng VNU.
+                </p>
+
+                {/* QR Code SVG/Image */}
+                <div className="p-4 bg-white border border-[#E3E5F8] rounded-[24px] shadow-inner flex items-center justify-center w-48 h-48">
+                  <img 
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&color=5b50d6&data=${encodeURIComponent(window.location.origin)}`}
+                    alt="App QR Code"
+                    className="w-40 h-40 object-contain"
+                    referrerPolicy="no-referrer"
+                  />
+                </div>
+                <p className="text-[10px] text-gray-400 mt-2 font-medium">
+                  Quét mã QR để mở ứng dụng trên điện thoại
+                </p>
+
+                {/* URL Copier Section */}
+                <div className="w-full mt-4">
+                  <div className="flex items-center gap-2 p-2 bg-gray-50 border border-[#E3E5F8] rounded-xl">
+                    <span className="text-[10px] font-medium text-gray-500 truncate flex-1 text-left px-1">
+                      {window.location.origin}
+                    </span>
+                    <button
+                      onClick={() => {
+                        const shareUrl = window.location.origin;
+                        navigator.clipboard.writeText(shareUrl).then(() => {
+                          setAppShareCopied(true);
+                          setTimeout(() => setAppShareCopied(false), 2000);
+                        });
+                      }}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all ${
+                        appShareCopied 
+                          ? "bg-green-500 text-white" 
+                          : "bg-app-primary text-white hover:bg-opacity-95"
+                      }`}
+                    >
+                      {appShareCopied ? (
+                        <>
+                          <Check className="w-3 h-3" />
+                          Đã chép
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-3 h-3" />
+                          Sao chép Link
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
     </div>

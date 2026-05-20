@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Bookmark, Calendar, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, List, Search, X } from "lucide-react";
+import { Bookmark, Calendar, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, List, Search, X, Share2, Copy, Check } from "lucide-react";
 import { Event, SavedItem, Scholarship } from "../types";
 import { useI18n } from "../lib/i18n";
 
