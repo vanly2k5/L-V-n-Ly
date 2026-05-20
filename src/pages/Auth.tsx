@@ -30,8 +30,11 @@ export default function Auth() {
       const errMessage = err?.message || "";
       const isInvalidCred = errCode === 'auth/invalid-credential' || errMessage.includes('auth/invalid-credential');
       const isOpNotAllowed = errCode === 'auth/operation-not-allowed' || errMessage.includes('auth/operation-not-allowed');
+      const isUnauthorizedDomain = errCode === 'auth/unauthorized-domain' || errMessage.includes('auth/unauthorized-domain') || errMessage.includes('unauthorized-domain');
 
-      if (isOpNotAllowed) {
+      if (isUnauthorizedDomain) {
+        setError("Tên miền này (Domain) chưa được ủy quyền trong Firebase Console. Hãy thực hiện theo Hướng dẫn số 2 phía dưới để thêm tên miền của bạn vào danh sách Authorized Domains.");
+      } else if (isOpNotAllowed) {
         setError("Vui lòng kích hoạt 'Email/Password' trong mục Authentication > Sign-in method tại Firebase Console.");
       } else if (isInvalidCred) {
         if (isLogin) {
@@ -67,7 +70,12 @@ export default function Auth() {
         return;
       }
       
-      if (errorCode === 'auth/invalid-credential' || errorMessage.includes('auth/invalid-credential') || errorCode === 'auth/operation-not-allowed' || errorMessage.includes('auth/operation-not-allowed')) {
+      const isUnauthorizedDomain = errorCode === 'auth/unauthorized-domain' || errorMessage.includes('auth/unauthorized-domain') || errorMessage.includes('unauthorized-domain');
+      const isInvalidCred = errorCode === 'auth/invalid-credential' || errorMessage.includes('auth/invalid-credential') || errorCode === 'auth/operation-not-allowed' || errorMessage.includes('auth/operation-not-allowed');
+
+      if (isUnauthorizedDomain) {
+        setError("Tên miền này chưa được ủy quyền trong Firebase Console. Hãy thực hiện theo Hướng dẫn số 2 phía dưới để thêm tên miền của bạn vào Authorized Domains.");
+      } else if (isInvalidCred) {
         setError("Lỗi xác thực Google SSO (invalid-credential). Vui lòng đảm bảo bạn đã ĐÃ kích hoạt Google Sign-In và cấu hình đầy đủ SHA-1 / cấu hình OAuth Client ID trùng khớp trong Firebase Console.");
       } else if (errorCode === 'auth/popup-blocked') {
         setError("Trình duyệt đã chặn cửa sổ Popup. Vui lòng cho phép nhảy tab/cửa sổ bật lên để đăng nhập.");
@@ -141,13 +149,37 @@ export default function Auth() {
             </div>
 
             {error && (
-              <motion.p 
-                initial={{ opacity: 0 }} 
-                animate={{ opacity: 1 }} 
-                className="text-red-400 text-xs text-center font-medium"
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95 }} 
+                animate={{ opacity: 1, scale: 1 }} 
+                className="p-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-left text-xs text-red-200 space-y-2"
               >
-                {error}
-              </motion.p>
+                <p className="font-bold text-red-300 text-center mb-1">⚠️ Lỗi cấu hình hoặc xác thực</p>
+                <p className="text-[11px] leading-relaxed">{error}</p>
+                
+                {/* Hướng dẫn chi tiết khắc phục khi chạy trên Vercel */}
+                <div className="pt-2 border-t border-red-500/20 text-[10px] space-y-1.5 text-red-300/90 font-medium">
+                  <p className="font-bold underline text-white">Cách khắc phục trên Firebase Console:</p>
+                  <ol className="list-decimal pl-4 space-y-1">
+                    <li>
+                      <span className="font-bold text-white">Bật Email/Password:</span> Vào <span className="text-yellow-300 font-bold">Authentication &gt; Sign-in method</span> &gt; Add new provider &gt; kích hoạt <span className="font-bold text-white">Email/Password</span>.
+                    </li>
+                    <li>
+                      <span className="font-bold text-white">Ủy quyền tên miền Vercel:</span> Vào <span className="text-yellow-300 font-bold">Authentication &gt; Settings &gt; Authorized domains</span> &gt; nhấn <span className="font-bold text-white">Add domain</span> và thêm link Vercel của bạn:<br />
+                      <code className="bg-black/40 px-1 py-0.5 rounded text-white block mt-1 select-all font-mono">l-v-n-ly-4joc-gq10nav6r-ly-s-projects2005.vercel.app</code>
+                      {typeof window !== 'undefined' && window.location.hostname !== "l-v-n-ly-4joc-gq10nav6r-ly-s-projects2005.vercel.app" && (
+                        <>
+                          <span className="text-gray-400 text-[9px] block mt-1">Hoặc tên miền hiện tại:</span>
+                          <code className="bg-black/40 px-1 py-0.5 rounded text-yellow-300 block mt-0.5 select-all font-mono">{window.location.hostname}</code>
+                        </>
+                      )}
+                    </li>
+                    <li>
+                      <span className="font-bold text-white">Bật Google Login (Nếu dùng):</span> Ở mục <span className="text-yellow-300 font-bold">Sign-in method</span>, kích hoạt Google và điền thông tin Client ID chuẩn.
+                    </li>
+                  </ol>
+                </div>
+              </motion.div>
             )}
 
             <button 
