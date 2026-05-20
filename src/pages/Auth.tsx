@@ -26,18 +26,27 @@ export default function Auth() {
       }
     } catch (err: any) {
       console.error(err);
-      if (err.code === 'auth/operation-not-allowed') {
-        setError("Vui lòng kích hoạt 'Email/Password' trong Firebase Console (Authentication > Sign-in method).");
-      } else if (err.code === 'auth/invalid-credential') {
-        setError("Thông tin đăng nhập không hợp lệ. Vui lòng kiểm tra lại email/mật khẩu hoặc kích hoạt phương thức đăng nhập trong Firebase Console.");
-      } else if (err.code === 'auth/weak-password') {
+      const errCode = err?.code || "";
+      const errMessage = err?.message || "";
+      const isInvalidCred = errCode === 'auth/invalid-credential' || errMessage.includes('auth/invalid-credential');
+      const isOpNotAllowed = errCode === 'auth/operation-not-allowed' || errMessage.includes('auth/operation-not-allowed');
+
+      if (isOpNotAllowed) {
+        setError("Vui lòng kích hoạt 'Email/Password' trong mục Authentication > Sign-in method tại Firebase Console.");
+      } else if (isInvalidCred) {
+        if (isLogin) {
+          setError("Tài khoản hoặc mật khẩu không khớp. Nếu bạn chưa tạo tài khoản, hãy chọn 'Đăng ký ngay' bên dưới hoặc kiểm tra xem tính năng 'Email/Password' đã được kích hoạt trong Firebase Console.");
+        } else {
+          setError("Đăng ký lỗi: Credential không hợp lệ. Vui lòng kiểm tra lại địa chỉ email hoặc đảm bảo phương thức đăng nhập bằng Email/Password đã được kích hoạt trong Firebase Console.");
+        }
+      } else if (errCode === 'auth/weak-password') {
         setError("Mật khẩu quá yếu (tối thiểu 6 ký tự).");
-      } else if (err.code === 'auth/email-already-in-use') {
-        setError("Email này đã được sử dụng.");
-      } else if (err.code === 'auth/invalid-email') {
-        setError("Email không hợp lệ.");
+      } else if (errCode === 'auth/email-already-in-use') {
+        setError("Email này đã được sử dụng từ trước.");
+      } else if (errCode === 'auth/invalid-email') {
+        setError("Email không đúng định dạng.");
       } else {
-        setError(t('auth.error'));
+        setError(errMessage || t('auth.error'));
       }
     } finally {
       setLoading(false);
@@ -52,18 +61,18 @@ export default function Auth() {
     } catch (err: any) {
       console.error("Google Login Error:", err);
       const errorCode = err?.code || "";
+      const errorMessage = err?.message || "";
       if (errorCode === 'auth/popup-closed-by-user' || errorCode === 'auth/cancelled-popup-request') {
-        // User closed the popup, do nothing and clear existing errors
         setError("");
         return;
       }
       
-      if (errorCode === 'auth/invalid-credential' || errorCode === 'auth/operation-not-allowed') {
-        setError("Lỗi xác thực. Vui lòng kiểm tra cấu hình Google Login trong Firebase Console.");
+      if (errorCode === 'auth/invalid-credential' || errorMessage.includes('auth/invalid-credential') || errorCode === 'auth/operation-not-allowed' || errorMessage.includes('auth/operation-not-allowed')) {
+        setError("Lỗi xác thực Google SSO (invalid-credential). Vui lòng đảm bảo bạn đã ĐÃ kích hoạt Google Sign-In và cấu hình đầy đủ SHA-1 / cấu hình OAuth Client ID trùng khớp trong Firebase Console.");
       } else if (errorCode === 'auth/popup-blocked') {
-        setError("Trình duyệt đã chặn cửa sổ bật lên. Vui lòng cho phép bật lên để đăng nhập.");
+        setError("Trình duyệt đã chặn cửa sổ Popup. Vui lòng cho phép nhảy tab/cửa sổ bật lên để đăng nhập.");
       } else {
-        setError(t('auth.error'));
+        setError(errorMessage || t('auth.error'));
       }
     } finally {
       setLoading(false);
